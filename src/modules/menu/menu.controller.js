@@ -1,5 +1,5 @@
-import { sendSuccess } from "../../common/response";
-import menuService from "./menu.service";
+import { sendSuccess } from "../../common/response.js";
+import menuService from "./menu.service.js";
 
 // ----------- / / -----------
 // TODO: Category
@@ -18,11 +18,30 @@ const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, slug } = req.body;
-    const category = await menuService.updateCategory(Number(id), {
+    const category = await menuService.updateCategory(String(id), {
       name,
       slug,
     });
     return sendSuccess(res, category, "Kategori berhasil diperbarui");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAllCategories = async (req, res, next) => {
+  try {
+    const categories = await menuService.getAllCategories();
+    return sendSuccess(res, categories, "Daftar kategori berhasil diambil");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await menuService.deleteCategory(String(id));
+    return sendSuccess(res, null, "Kategori berhasil dihapus");
   } catch (error) {
     next(error);
   }
@@ -75,4 +94,11 @@ const updateMenu = async (req, res, next) => {
   }
 };
 
-export default { createCategory, updateCategory, createMenu, updateMenu };
+export default {
+  createCategory,
+  updateCategory,
+  getAllCategories,
+  deleteCategory,
+  createMenu,
+  updateMenu,
+};

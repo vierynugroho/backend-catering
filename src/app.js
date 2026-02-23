@@ -8,7 +8,7 @@ import rateLimit from "express-rate-limit";
 import errorHandler from "./middlewares/error.middleware.js";
 
 import authRoutes from "./modules/auth/auth.route.js";
-// const menuRoutes = require("./modules/menus/menu.routes");
+import menuRoutes from "./modules/menu/menu.route.js";
 // const orderRoutes = require("./modules/orders/order.routes");
 // const shippingRoutes = require("./modules/shipping/shipping.routes");
 // const dashboardRoutes = require("./modules/dashboard/dashboard.routes");
@@ -75,7 +75,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authLimiter, authRoutes);
-// app.use("/api/menus", menuRoutes);
+app.use("/api/menus", menuRoutes);
 // app.use("/api/orders", orderRoutes);
 // app.use("/api/shipping", shippingRoutes);
 // app.use("/api/dashboard", dashboardRoutes);
