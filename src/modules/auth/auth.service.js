@@ -30,6 +30,16 @@ const login = async ({ email, password }) => {
   const isMatch = await bcryptjs.compare(password, user.password);
   if (!isMatch) throw { statusCode: 401, message: "Email atau password salah" };
 
+  const userIsActive = await prisma.user.findFirst({
+    where: { email, isActive: true },
+  });
+  if (!userIsActive)
+    throw {
+      statusCode: 403,
+      message:
+        "Akun Anda tidak aktif, Hubungi admin untuk mengaktifkan akun Anda",
+    };
+
   const token = generateToken({ id: user.id, role: user.role });
   const { password: _, ...userWithoutPassword } = user;
   return { user: userWithoutPassword, token };
@@ -50,4 +60,51 @@ const me = async (userId) => {
   return user;
 };
 
-export default { register, login, me };
+const updateProfile = async (
+  userId,
+  { fullname, email, password, confirm_password, phone, address },
+) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw { statusCode: 404, message: "User tidak ditemukan" };
+
+  const data = {};
+  if (fullname) data.fullname = fullname;
+  if (email) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && existing.id !== userId)
+      throw { statusCode: 409, message: "Email sudah terdaftar" };
+    data.email = email;
+  }
+  if (password) {
+    if (password !== confirm_password)
+      throw {
+        statusCode: 400,
+        message: "Password dan konfirmasi password tidak cocok",
+      };
+
+    const hashedPassword = await bcryptjs.hash(password, 12);
+    data.password = hashedPassword;
+  }
+  if (phone) {
+    data.phone = phone;
+  }
+  if (address) {
+    data.address = address;
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: {
+      id: true,
+      fullname: true,
+      email: true,
+      role: true,
+      customerType: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+export default { register, login, me, updateProfile };

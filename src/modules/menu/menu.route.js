@@ -71,6 +71,7 @@ router
     validate(updateMenuSchema),
     controller.updateMenu,
   )
+  .get(controller.getMenuById)
   .delete(authenticate, authorizeAdmin, controller.deleteMenu);
 
 export default router;

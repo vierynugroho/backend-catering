@@ -8,6 +8,8 @@ const toSnakeCase = (str) => {
 const dataKeyToSnakeCase = (data) => {
   if (Array.isArray(data)) {
     return data.map((item) => dataKeyToSnakeCase(item));
+  } else if (data instanceof Date) {
+    return data;
   } else if (data !== null && typeof data === "object") {
     return Object.keys(data).reduce((acc, key) => {
       acc[toSnakeCase(key)] = dataKeyToSnakeCase(data[key]);

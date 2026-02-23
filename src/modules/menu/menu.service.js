@@ -211,6 +211,34 @@ const deleteMenu = async (id) => {
   return updateToNonActive;
 };
 
+const getMenuById = async (id, isAdmin = false) => {
+  const menu = await prisma.menu.findUnique({
+    where: { id, isActive: isAdmin ? undefined : true },
+    include: {
+      category: true,
+    },
+  });
+
+  if (!menu) throw { statusCode: 404, message: "Menu tidak ditemukan" };
+
+  return {
+    id: menu.id,
+    name: menu.name,
+    slug: menu.slug,
+    is_active: menu.isActive,
+    images: menu.images ? JSON.parse(menu.images) : [],
+    price: Number(menu.price) || 0,
+    description: menu.description,
+    category: menu.category
+      ? {
+          id: menu.category.id,
+          name: menu.category.name,
+          slug: menu.category.slug,
+        }
+      : null,
+  };
+};
+
 export default {
   createMenu,
   updateMenu,
@@ -220,4 +248,5 @@ export default {
   getAllCategories,
   deleteCategory,
   deleteMenu,
+  getMenuById,
 };

@@ -160,6 +160,20 @@ const deleteMenu = async (req, res, next) => {
   }
 };
 
+const getMenuById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const menu = await menuService.getMenuById(
+      String(id),
+      req.isAdmin ? true : false,
+    );
+
+    return sendSuccess(res, menu, "Menu berhasil diambil");
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   createCategory,
   updateCategory,
@@ -169,4 +183,5 @@ export default {
   createMenu,
   updateMenu,
   deleteMenu,
+  getMenuById,
 };

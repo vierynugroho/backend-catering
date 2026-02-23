@@ -24,4 +24,13 @@ const me = async (req, res) => {
   return sendSuccess(res, user, "Data user berhasil diambil");
 };
 
-export default { register, login, me };
+const updateProfile = async (req, res, next) => {
+  try {
+    const result = await authService.updateProfile(req.user.id, req.body);
+    return sendSuccess(res, result, "Profil berhasil diperbarui");
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default { register, login, me, updateProfile };
