@@ -21,6 +21,8 @@ const authorizeAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
     return sendError(res, "Forbidden - Admin only", 403);
   }
+  req.isAdmin = true;
+  req.isCustomer = false; 
   next();
 };
 
@@ -28,6 +30,8 @@ const authorizeCustomer = (req, res, next) => {
   if (req.user?.role !== "customer") {
     return sendError(res, "Forbidden - Customer only", 403);
   }
+  req.isCustomer = true;
+  req.isAdmin = false;
   next();
 };
 

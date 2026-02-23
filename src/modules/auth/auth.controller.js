@@ -20,7 +20,8 @@ const login = async (req, res, next) => {
 };
 
 const me = async (req, res) => {
-  return sendSuccess(res, req.user, "Data user berhasil diambil");
+  const user = await authService.me(req.user.id);
+  return sendSuccess(res, user, "Data user berhasil diambil");
 };
 
 export default { register, login, me };

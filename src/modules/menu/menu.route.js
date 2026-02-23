@@ -11,7 +11,11 @@ import {
   updateCategorySchema,
   updateMenuSchema,
 } from "./menu.schema.js";
-import { uploadMultiple } from "../../middlewares/upload.middleware.js";
+import {
+  compressAndUploadToImageKit,
+  handleMulterError,
+  uploadMultiple,
+} from "../../middlewares/upload.middleware.js";
 
 const router = new Router();
 
@@ -45,10 +49,13 @@ router
 
 router
   .route("/")
+  .get(controller.getMenus)
   .post(
     authenticate,
     authorizeAdmin,
     uploadMultiple,
+    compressAndUploadToImageKit,
+    handleMulterError,
     validate(createMenuSchema),
     controller.createMenu,
   );
@@ -59,8 +66,11 @@ router
     authenticate,
     authorizeAdmin,
     uploadMultiple,
+    compressAndUploadToImageKit,
+    handleMulterError,
     validate(updateMenuSchema),
     controller.updateMenu,
-  );
+  )
+  .delete(authenticate, authorizeAdmin, controller.deleteMenu);
 
 export default router;

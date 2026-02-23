@@ -1,5 +1,6 @@
 import multer from "multer";
 import sharp from "sharp";
+import { deleteFromImageKit, uploadToImageKit } from "../lib/imageKit.js";
 
 // ─── Memory storage: file tidak disentuh disk ─────────────────────────────────
 const storage = multer.memoryStorage();
@@ -21,8 +22,8 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // Maks 10 MB per file (sebelum dikompres)
-    files: 10, // Maks 10 foto sekaligus
+    fileSize: 10 * 1024 * 1024,
+    files: 10,
   },
 });
 
@@ -36,23 +37,40 @@ export const compressToWebP = async (
     .toBuffer();
 };
 
-export const compressFilesToWebP = async (req, _res, next) => {
+// ─── Compress + langsung upload ke ImageKit ───────────────────────────────────
+export const compressAndUploadToImageKit = async (req, _res, next) => {
   try {
     if (!req.files || req.files.length === 0) return next();
 
-    req.files = await Promise.all(
-      req.files.map(async (file) => {
-        const compressedBuffer = await compressToWebP(file.buffer);
+    const uploadedFileIds = []; // track fileId untuk rollback jika gagal
 
-        return {
-          ...file,
-          buffer: compressedBuffer,
-          mimetype: "image/webp",
-          originalname: file.originalname.replace(/\.[^.]+$/, ".webp"),
-          size: compressedBuffer.length,
-        };
-      }),
-    );
+    try {
+      req.uploadedImages = await Promise.all(
+        req.files.map(async (file) => {
+          const compressedBuffer = await compressToWebP(file.buffer);
+
+          const fileName = file.originalname.replace(/\.[^.]+$/, ".webp");
+
+          const result = await uploadToImageKit(compressedBuffer, fileName);
+
+          uploadedFileIds.push(result.fileId);
+
+          const uploadedData = {
+            url: result.url,
+            fileId: result.fileId,
+            fileName: result.name,
+          };
+
+          return uploadedData;
+        }),
+      );
+    } catch (uploadError) {
+      // Rollback: hapus semua yang sudah terlanjur terupload
+      await Promise.allSettled(
+        uploadedFileIds.map((fileId) => deleteFromImageKit(fileId)),
+      );
+      return next(uploadError);
+    }
 
     next();
   } catch (error) {
@@ -64,7 +82,7 @@ export const compressFilesToWebP = async (req, _res, next) => {
  * Middleware upload banyak foto (field name: "images", maks 10 file)
  *
  * Urutan pemakaian di route:
- *   router.post('/', uploadMultiple, compressFilesToWebP, handleMulterError, createMenu);
+ *   router.post('/', uploadMultiple, compressAndUploadToImageKit, handleMulterError, createMenu);
  */
 export const uploadMultiple = upload.array("images", 10);
 
@@ -76,6 +94,7 @@ export const handleMulterError = (err, _req, res, next) => {
       LIMIT_UNEXPECTED_FILE:
         'Field file tidak dikenali. Gunakan field "images".',
     };
+
     return res.status(400).json({
       success: false,
       message: messages[err.code] ?? `Upload error: ${err.message}`,

@@ -1,3 +1,26 @@
+const toSnakeCase = (str) => {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/[\s-]+/g, "_")
+    .toLowerCase();
+};
+
+const dataKeyToSnakeCase = (data) => {
+  if (Array.isArray(data)) {
+    return data.map((item) => dataKeyToSnakeCase(item));
+  } else if (data !== null && typeof data === "object") {
+    return Object.keys(data).reduce((acc, key) => {
+      acc[toSnakeCase(key)] = dataKeyToSnakeCase(data[key]);
+      return acc;
+    }, {});
+  }
+  return data;
+};
+
+// ----------- / / -----------
+// TODO: Response Helpers
+// ----------- / / -----------
+
 const sendSuccess = (
   res,
   data = null,
@@ -7,7 +30,7 @@ const sendSuccess = (
   return res.status(statusCode).json({
     success: true,
     message,
-    data,
+    data: dataKeyToSnakeCase(data),
   });
 };
 
@@ -25,19 +48,35 @@ const sendError = (
 };
 
 const sendWithPagination = (
-  code = 200,
-  isSuccess = true,
   res,
   data,
   pagination,
   message = "Success",
+  code = 200,
+  isSuccess = true,
 ) => {
   return res.status(code).json({
     success: isSuccess,
     message,
-    data,
-    pagination,
+    data: dataKeyToSnakeCase(data),
+    pagination: dataKeyToSnakeCase(pagination),
   });
 };
 
-export { sendSuccess, sendError, sendWithPagination };
+// ----------- / / -----------
+// TODO: Build Pagination
+// ----------- / / -----------
+
+const buildPagination = (totalItems, currentPage = 1, pageSize = 10) => {
+  const totalPages = Math.ceil(totalItems / pageSize);
+  return {
+    totalItems,
+    currentPage,
+    pageSize,
+    totalPages,
+    hasNextPage: currentPage < totalPages,
+    hasPreviousPage: currentPage > 1,
+  };
+};
+
+export { sendSuccess, sendError, sendWithPagination, buildPagination };

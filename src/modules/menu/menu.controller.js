@@ -1,4 +1,4 @@
-import { sendSuccess } from "../../common/response.js";
+import { sendSuccess, sendWithPagination } from "../../common/response.js";
 import menuService from "./menu.service.js";
 
 // ----------- / / -----------
@@ -51,22 +51,61 @@ const deleteCategory = async (req, res, next) => {
 // TODO: Menu
 // ----------- / / -----------
 
+const getMenus = async (req, res, next) => {
+  try {
+    const { page, limit } = req.query;
+    const { menus, pagination } = await menuService.getMenus(
+      req.isAdmin ? true : false,
+      Number(page) || null,
+      Number(limit) || null,
+    );
+    return sendWithPagination(
+      res,
+      menus,
+      pagination,
+      "Menu berhasil diambil",
+      200,
+      true,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createMenu = async (req, res, next) => {
   try {
     const { name, slug, is_active, category_id, price, description } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const images = req.uploadedImages || [];
 
     const menu = await menuService.createMenu({
       name,
       slug,
       is_active,
       category_id,
-      imageUrl,
+      images,
       price,
       description,
     });
 
-    return sendSuccess(res, menu, "Menu berhasil dibuat", 201);
+    const mappedResponse = {
+      id: menu.id,
+      name: menu.name,
+      slug: menu.slug,
+      is_active: menu.isActive,
+      images: menu.images ? JSON.parse(menu.images) : [],
+      price: Number(menu.price) || 0,
+      description: menu.description,
+      category: menu.category
+        ? {
+            id: menu.category.id,
+            name: menu.category.name,
+            slug: menu.category.slug,
+          }
+        : null,
+    };
+
+    return sendSuccess(res, mappedResponse, "Menu berhasil dibuat", 201);
   } catch (error) {
     next(error);
   }
@@ -76,19 +115,46 @@ const updateMenu = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, slug, is_active, category_id, price, description } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const images = req.uploadedImages || [];
 
-    const menu = await menuService.updateMenu(Number(id), {
+    const menu = await menuService.updateMenu(String(id), {
       name,
       slug,
       is_active,
       category_id,
-      imageUrl,
+      images,
       price,
       description,
     });
 
-    return sendSuccess(res, menu, "Menu berhasil diperbarui");
+    const mappedResponse = {
+      id: menu.id,
+      name: menu.name,
+      slug: menu.slug,
+      is_active: menu.isActive,
+      images: menu.images ? JSON.parse(menu.images) : [],
+      price: Number(menu.price) || 0,
+      description: menu.description,
+      category: menu.category
+        ? {
+            id: menu.category.id,
+            name: menu.category.name,
+            slug: menu.category.slug,
+          }
+        : null,
+    };
+
+    return sendSuccess(res, mappedResponse, "Menu berhasil diperbarui");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteMenu = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await menuService.deleteMenu(String(id));
+    return sendSuccess(res, null, "Menu berhasil dihapus");
   } catch (error) {
     next(error);
   }
@@ -99,6 +165,8 @@ export default {
   updateCategory,
   getAllCategories,
   deleteCategory,
+  getMenus,
   createMenu,
   updateMenu,
+  deleteMenu,
 };

@@ -1,7 +1,23 @@
 import { sendError } from "../common/response.js";
+import { deleteFromImageKit } from "../lib/imageKit.js";
 
 const errorHandler = (err, req, res, next) => {
   console.error("[ERROR]", err);
+  const uploadedFileIds =
+    req.uploadedImages && req.uploadedImages.map((img) => img.fileId);
+
+  if (uploadedFileIds && uploadedFileIds.length > 0) {
+    uploadedFileIds.forEach((fileId) => {
+      console.log("deleting file from ImageKit due to error:", fileId);
+      deleteFromImageKit(fileId).catch((deleteError) => {
+        console.error(
+          `Failed to delete file ${fileId} from ImageKit:`,
+          deleteError,
+        );
+      });
+    });
+  }
+
 
   // Prisma errors
   if (err.code === "P2002") {
