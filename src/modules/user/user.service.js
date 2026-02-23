@@ -48,9 +48,6 @@ const createUser = async (data) => {
 
 const updateUser = async (id, data) => {
   const { fullname, email, password, phone, address, customer_type } = data;
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
-  });
 
   const updatedUser = await prisma.user.update({
     where: { id },

@@ -57,6 +57,16 @@ const me = async (userId) => {
     },
   });
   if (!user) throw { statusCode: 404, message: "User tidak ditemukan" };
+
+  const userActive = await prisma.user.findFirst({
+    where: { id: userId, isActive: true },
+  });
+  if (!userActive)
+    throw {
+      statusCode: 403,
+      message:
+        "Akun Anda tidak aktif, Hubungi admin untuk mengaktifkan akun Anda",
+    };
   return user;
 };
 
@@ -66,6 +76,16 @@ const updateProfile = async (
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw { statusCode: 404, message: "User tidak ditemukan" };
+
+  const userActive = await prisma.user.findFirst({
+    where: { id: userId, isActive: true },
+  });
+  if (!userActive)
+    throw {
+      statusCode: 403,
+      message:
+        "Akun Anda tidak aktif, Hubungi admin untuk mengaktifkan akun Anda",
+    };
 
   const data = {};
   if (fullname) data.fullname = fullname;
