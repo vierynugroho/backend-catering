@@ -1,5 +1,9 @@
 import userService from "./user.service.js";
-import { sendSuccess, sendError } from "../../common/response.js";
+import {
+  sendSuccess,
+  sendError,
+  sendWithPagination,
+} from "../../common/response.js";
 
 const getUsers = async (req, res, next) => {
   try {
@@ -8,7 +12,13 @@ const getUsers = async (req, res, next) => {
       Number(page) || null,
       Number(limit) || null,
     );
-    return sendSuccess(res, result, "Data user berhasil diambil", 200);
+    return sendWithPagination(
+      res,
+      result.users,
+      result.pagination,
+      "Data user berhasil diambil",
+      200,
+    );
   } catch (err) {
     next(err);
   }

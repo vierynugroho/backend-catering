@@ -1,3 +1,5 @@
+import moment from "moment";
+const TIMEZONE = "Asia/Jakarta";
 /*
  * format phone number to +62
  */
@@ -15,4 +17,71 @@ export const formatPhoneNumber = (phone) => {
   }
 
   return digits;
+};
+
+/**
+ * Parse DDMMYYYY to WIB date
+ */
+export const parseDDMMYYYYToWIBDate = (value) => {
+  const m = moment(value, "DD-MM-YYYY", true);
+  if (!m.isValid()) {
+    throw {
+      statusCode: 400,
+      message: "Format tanggal harus DD-MM-YYYY dan harus tanggal yang valid",
+    };
+  }
+  return m.startOf("day").tz(TIMEZONE).toDate();
+};
+
+export const getTodayWIB = () => {
+  const start = moment().tz(TIMEZONE).startOf("day").toDate(); // 00:00 WIB
+  const end = moment().tz(TIMEZONE).add(1, "day").startOf("day").toDate(); // H+1 00:00 WIB
+  return { start, end };
+};
+
+const DATE_ONLY_FORMATS = ["DD-MM-YYYY", "YYYY-MM-DD"];
+
+export const setToWIB = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  // Date object
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime()))
+      throw { statusCode: 400, message: "Format tanggal tidak valid" };
+    return moment(value).tz(TIMEZONE).toDate();
+  }
+
+  // timestamp in ms
+  if (typeof value === "number") {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime()))
+      throw { statusCode: 400, message: "Format tanggal tidak valid" };
+    return moment(d).tz(TIMEZONE).toDate();
+  }
+
+  if (typeof value !== "string") {
+    throw { statusCode: 400, message: "Unsupported date value type" };
+  }
+
+  const str = value.trim();
+
+  const dateOnly = moment.tz(str, DATE_ONLY_FORMATS, true, TIMEZONE);
+  if (dateOnly.isValid()) {
+    return dateOnly.startOf("day").toDate();
+  }
+
+  const iso = moment.parseZone(str, moment.ISO_8601, true);
+  if (iso.isValid()) {
+    return iso.tz(TIMEZONE).toDate();
+  }
+
+  throw {
+    statusCode: 400,
+    message:
+      'Invalid date string. Allowed: "DD-MM-YYYY", "YYYY-MM-DD", or ISO-8601.',
+  };
+};
+
+export const getCurrentDateWIB = () => {
+  return moment().tz(TIMEZONE).toDate();
 };

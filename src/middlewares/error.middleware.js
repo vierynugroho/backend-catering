@@ -1,6 +1,21 @@
 import { sendError } from "../common/response.js";
 import { deleteFromImageKit } from "../lib/imageKit.js";
 
+/**
+ * Custom API error class to standardize error handling across the application.
+ */
+export class APIError extends Error {
+  /**
+   * 
+   * @param {*} message 
+   * @param {*} statusCode 
+   */
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode ?? 500;
+  }
+}
+
 const errorHandler = (err, req, res, next) => {
   console.error("[ERROR]", err);
   const uploadedFileIds =

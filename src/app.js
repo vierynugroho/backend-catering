@@ -1,4 +1,7 @@
 import "dotenv/config";
+import momentTZ from "moment-timezone";
+momentTZ.tz.setDefault("Asia/Jakarta");
+
 import express, { json, urlencoded } from "express";
 import cors from "cors";
 import helmet from "helmet";

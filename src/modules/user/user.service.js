@@ -23,7 +23,7 @@ const getUserById = async (id) => {
   });
 
   if (!user) {
-    throw new Error("User tidak ditemukan");
+    throw { statusCode: 400, message: "User tidak ditemukan" };
   }
 
   return user;
