@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 const toSnakeCase = (str) => {
   return str
     .replace(/([a-z])([A-Z])/g, "$1_$2")
@@ -5,17 +7,29 @@ const toSnakeCase = (str) => {
     .toLowerCase();
 };
 
-const dataKeyToSnakeCase = (data) => {
+const isPrismaDecimal = (val) => {
+  return val instanceof Prisma.Decimal;
+};
+
+export const dataKeyToSnakeCase = (data, { decimal = "string" } = {}) => {
   if (Array.isArray(data)) {
-    return data.map((item) => dataKeyToSnakeCase(item));
-  } else if (data instanceof Date) {
-    return data;
-  } else if (data !== null && typeof data === "object") {
+    return data.map((item) => dataKeyToSnakeCase(item, { decimal }));
+  }
+
+  if (data instanceof Date) return data;
+
+  if (isPrismaDecimal(data)) {
+    if (decimal === "number") return data.toNumber();
+    return data.toString();
+  }
+
+  if (data !== null && typeof data === "object") {
     return Object.keys(data).reduce((acc, key) => {
-      acc[toSnakeCase(key)] = dataKeyToSnakeCase(data[key]);
+      acc[toSnakeCase(key)] = dataKeyToSnakeCase(data[key], { decimal });
       return acc;
     }, {});
   }
+
   return data;
 };
 

@@ -1,6 +1,6 @@
 import prisma from "../../config/db/prisma.js";
 import { buildPagination } from "../../common/response.js";
-import { setWIBDate, setToWIB } from "../../utils/helpers.js";
+import { setWIBDate } from "../../utils/helpers.js";
 
 const getOrderStocks = async (page, limit) => {
   const orderStockWithMenu = await prisma.stockOrder.findMany({
@@ -67,6 +67,10 @@ const updateOrderStock = async (id, data) => {
     },
   });
 
+  if (!isExistingStockOrder) {
+    throw { statusCode: 400, message: "Order stock tidak ditemukan" };
+  }
+
   if (isExistingStockOrder) {
     throw {
       statusCode: 400,
@@ -108,11 +112,9 @@ const deleteOrderStock = async (id) => {
 export const validateStockOrderMenu = async (date) => {
   const existingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setToWIB(date),
+      eventDate: setWIBDate(date),
     },
   });
-
-  console.log({ existingStockOrder });
 
   const outOfStock = existingStockOrder
     ? existingStockOrder.currentStock >= existingStockOrder.maxStock

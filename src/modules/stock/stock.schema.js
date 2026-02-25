@@ -1,25 +1,9 @@
 import { z } from "zod";
 
-import moment from "moment-timezone";
-
-const TIMEZONE = "Asia/Jakarta";
-
-const parseWIBDateTime = (value) => {
-  console.log("Parsing date:", value);
-  const m = moment.tz(value, "DD-MM-YYYY HH:mm:ss", true, TIMEZONE);
-  console.log({ m });
-  if (!m.isValid()) return null;
-  return m.toDate();
-};
-
 const createStockSchema = z.object({
   event_date: z
-    .string({ required_error: "Tanggal acara wajib diisi" })
-    .refine((v) => parseWIBDateTime(v) !== null, {
-      message:
-        "Format tanggal harus DD-MM-YYYY HH:mm:ss dan harus tanggal valid (WIB)",
-    })
-    .transform((v) => parseWIBDateTime(v)),
+    .string()
+    .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
   max_stock: z.coerce
     .number({
       required_error: "Stok maksimal wajib diisi",
@@ -38,12 +22,8 @@ const createStockSchema = z.object({
 
 const updateStockSchema = z.object({
   event_date: z
-    .string({ required_error: "Tanggal acara wajib diisi" })
-    .refine((v) => parseWIBDateTime(v) !== null, {
-      message:
-        "Format tanggal harus DD-MM-YYYY HH:mm:ss dan harus tanggal valid (WIB)",
-    })
-    .transform((v) => parseWIBDateTime(v))
+    .string()
+    .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" })
     .optional(),
   max_stock: z.coerce
     .number({

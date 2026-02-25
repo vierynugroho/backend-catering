@@ -19,20 +19,6 @@ export const formatPhoneNumber = (phone) => {
   return digits;
 };
 
-/**
- * Parse DDMMYYYY to WIB date
- */
-export const parseDDMMYYYYToWIBDate = (value) => {
-  const m = moment(value, "DD-MM-YYYY", true);
-  if (!m.isValid()) {
-    throw {
-      statusCode: 400,
-      message: "Format tanggal harus DD-MM-YYYY dan harus tanggal yang valid",
-    };
-  }
-  return m.startOf("day").tz(TIMEZONE).toDate();
-};
-
 export const getTodayWIB = () => {
   const start = moment().tz(TIMEZONE).startOf("day").toDate(); // 00:00 WIB
   const end = moment().tz(TIMEZONE).add(1, "day").startOf("day").toDate(); // H+1 00:00 WIB
@@ -82,7 +68,7 @@ export const setToWIB = (value) => {
   };
 };
 
-export const formatWIBDateTime = (value) => {
+export const setWIBDateTime = (value) => {
   const d = setToWIB(value);
   if (!d) return null;
 
@@ -90,7 +76,7 @@ export const formatWIBDateTime = (value) => {
 };
 
 export const setWIBDate = (value) => {
-  const d = setToWIB(value); // returns Date or null
+  const d = setToWIB(value);
   if (!d) return null;
 
   return moment(d).tz(TIMEZONE).startOf("day");
@@ -101,10 +87,6 @@ export const formatDateResponse = (date, show_time = false) => {
   return show_time
     ? moment(date).tz(TIMEZONE).format("DD-MM-YYYY HH:mm:ss")
     : moment(date).tz(TIMEZONE).format("DD-MM-YYYY");
-};
-
-export const getCurrentDateWIB = () => {
-  return moment().tz(TIMEZONE).format("YYYY-MM-DD[T]HH:mm:ssZ");
 };
 
 export const generateOrderCode = () => {

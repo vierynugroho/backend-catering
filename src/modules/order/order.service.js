@@ -4,10 +4,9 @@ import prisma from "../../config/db/prisma.js";
 import {
   formatDateResponse,
   formatPhoneNumber,
-  formatWIBDateTime,
+  setWIBDateTime,
   generateOrderCode,
-  getCurrentDateWIB,
-  setToWIB,
+  setWIBDate,
 } from "../../utils/helpers.js";
 
 export const calculateOrderItems = (items) => {
@@ -98,7 +97,6 @@ const createOrder = async ({
     destination,
     order_date: orderDate,
     note,
-    current_time: getCurrentDateWIB(),
     code: generateOrderCode(),
     delivery_method: deliveryMethod,
     items: items.map((item) => ({
@@ -127,7 +125,6 @@ const createOrder = async ({
 
   console.dir(
     {
-      current_WIB: getCurrentDateWIB(),
       payload,
       totalPerItem,
       totalPrice,
@@ -137,12 +134,12 @@ const createOrder = async ({
   );
 
   return await prisma.$transaction(async (prisma) => {
-    await prisma.order.create({
+    const newOrder = await prisma.order.create({
       data: {
         customerName: payload.customer_name,
         phone: payload.phone,
         destination: payload.destination,
-        eventDate: formatWIBDateTime(payload.order_date),
+        eventDate: setWIBDateTime(payload.order_date),
         note: payload.note,
         userId: payload.user_id,
         code: payload.code,
@@ -157,22 +154,23 @@ const createOrder = async ({
               0,
           })),
         },
-        createdAt: formatWIBDateTime(setToWIB(new Date())),
-        updatedAt: formatWIBDateTime(setToWIB(new Date())),
+        createdAt: setWIBDateTime(new Date()),
+        updatedAt: setWIBDateTime(new Date()),
       },
     });
 
     await prisma.stockOrder.updateMany({
       where: {
-        eventDate: setToWIB(orderDate),
+        eventDate: setWIBDate(orderDate),
       },
       data: {
         currentStock: {
           increment: 1,
         },
-        updatedAt: formatWIBDateTime(setToWIB(new Date())),
+        updatedAt: setWIBDateTime(new Date()),
       },
     });
+    return newOrder;
   });
 };
 
