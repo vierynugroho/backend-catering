@@ -37,11 +37,10 @@ const getOrderStockById = async (req, res, next) => {
 
 const createOrderStock = async (req, res, next) => {
   try {
-    const { event_date, menu_id, max_stock, current_stock } = req.body;
+    const { event_date, max_stock, current_stock } = req.body;
 
     const result = await stockOrderService.createOrderStock({
       event_date,
-      menu_id,
       max_stock,
       current_stock,
     });
@@ -54,11 +53,10 @@ const createOrderStock = async (req, res, next) => {
 const updateOrderStock = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { event_date, menu_id, max_stock, current_stock } = req.body;
+    const { event_date, max_stock, current_stock } = req.body;
 
     const result = await stockOrderService.updateOrderStock(String(id), {
       event_date,
-      menu_id,
       max_stock,
       current_stock,
     });

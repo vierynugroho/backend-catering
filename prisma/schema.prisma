@@ -76,7 +76,6 @@ model Menu {
 
   category    Category     @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
-  stockOrders StockOrder[]
 
   @@map("menus")
 }
@@ -87,15 +86,13 @@ model Menu {
 model StockOrder {
   id           String   @id @default(cuid())
   eventDate    DateTime @map("event_date") @db.Date
-  menuId       String   @map("menu_id")
   maxStock     Int      @map("max_stock")
   currentStock Int      @default(0) @map("current_stock")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  menu Menu @relation(fields: [menuId], references: [id])
 
-  @@unique([eventDate, menuId])
+  @@unique([eventDate])
   @@map("stock_orders")
 }
 
@@ -109,8 +106,9 @@ model Order {
   customerName   String         @map("customer_name")
   phone          String
   destination    String
-  eventDate      DateTime       @map("event_date") @db.Date
+  eventDate      DateTime       @map("event_date")
   note           String?
+  code           String         @unique @default(cuid())
   deliveryMethod DeliveryMethod @default(dikirim) @map("delivery_method")
   orderStatus    OrderStatus    @default(pesanan_diterima) @map("order_status")
   shippingCost   Decimal        @default(0) @map("shipping_cost") @db.Decimal(10, 2)

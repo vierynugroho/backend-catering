@@ -1,39 +1,25 @@
 import { z } from "zod";
 
-const ddmmyyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
+import moment from "moment-timezone";
 
-function isValidDDMMYYYY(value) {
-  if (!ddmmyyyyRegex.test(value)) return false;
+const TIMEZONE = "Asia/Jakarta";
 
-  const [ddStr, mmStr, yyyyStr] = value.split("-");
-  const dd = Number(ddStr);
-  const mm = Number(mmStr);
-  const yyyy = Number(yyyyStr);
-
-  if (!Number.isInteger(dd) || !Number.isInteger(mm) || !Number.isInteger(yyyy))
-    return false;
-  if (mm < 1 || mm > 12) return false;
-
-  const daysInMonth = new Date(yyyy, mm, 0).getDate(); // mm is 1-12, day 0 => last day prev month
-  if (dd < 1 || dd > daysInMonth) return false;
-
-  return true;
-}
+const parseWIBDateTime = (value) => {
+  console.log("Parsing date:", value);
+  const m = moment.tz(value, "DD-MM-YYYY HH:mm:ss", true, TIMEZONE);
+  console.log({ m });
+  if (!m.isValid()) return null;
+  return m.toDate();
+};
 
 const createStockSchema = z.object({
   event_date: z
-    .string({
-      required_error: "Tanggal acara wajib diisi",
-      invalid_type_error:
-        "Tanggal acara harus berupa teks tanggal (DD-MM-YYYY)",
+    .string({ required_error: "Tanggal acara wajib diisi" })
+    .refine((v) => parseWIBDateTime(v) !== null, {
+      message:
+        "Format tanggal harus DD-MM-YYYY HH:mm:ss dan harus tanggal valid (WIB)",
     })
-    .refine(isValidDDMMYYYY, {
-      message: "Format tanggal harus DD-MM-YYYY dan harus tanggal yang valid",
-    }),
-  menu_id: z.string({
-    required_error: "ID menu wajib diisi",
-    invalid_type_error: "ID menu harus berupa string",
-  }),
+    .transform((v) => parseWIBDateTime(v)),
   max_stock: z.coerce
     .number({
       required_error: "Stok maksimal wajib diisi",
@@ -52,20 +38,12 @@ const createStockSchema = z.object({
 
 const updateStockSchema = z.object({
   event_date: z
-    .string({
-      required_error: "Tanggal acara wajib diisi",
-      invalid_type_error:
-        "Tanggal acara harus berupa teks tanggal (DD-MM-YYYY)",
+    .string({ required_error: "Tanggal acara wajib diisi" })
+    .refine((v) => parseWIBDateTime(v) !== null, {
+      message:
+        "Format tanggal harus DD-MM-YYYY HH:mm:ss dan harus tanggal valid (WIB)",
     })
-    .refine(isValidDDMMYYYY, {
-      message: "Format tanggal harus DD-MM-YYYY dan harus tanggal yang valid",
-    })
-    .optional(),
-  menu_id: z
-    .string({
-      required_error: "ID menu wajib diisi",
-      invalid_type_error: "ID menu harus berupa string",
-    })
+    .transform((v) => parseWIBDateTime(v))
     .optional(),
   max_stock: z.coerce
     .number({

@@ -13,8 +13,8 @@ import errorHandler from "./middlewares/error.middleware.js";
 import authRoutes from "./modules/auth/auth.route.js";
 import menuRoutes from "./modules/menu/menu.route.js";
 import adminRoutes from "./modules/admin.routes.js";
+import orderRoutes from "./modules/order/order.route.js";
 import { authenticate, authorizeAdmin } from "./middlewares/auth.middleware.js";
-// const orderRoutes = require("./modules/orders/order.routes");
 // const shippingRoutes = require("./modules/shipping/shipping.routes");
 // const dashboardRoutes = require("./modules/dashboard/dashboard.routes");
 // const userRoutes = require("./modules/users/user.routes");
@@ -82,7 +82,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/admin", authenticate, authorizeAdmin, adminRoutes);
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/menus", menuRoutes);
-// app.use("/api/orders", orderRoutes);
+app.use("/api/orders", orderRoutes);
 // app.use("/api/shipping", shippingRoutes);
 // app.use("/api/dashboard", dashboardRoutes);
 // app.use("/api/users", userRoutes);

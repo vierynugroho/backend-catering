@@ -1,14 +1,11 @@
 import prisma from "../../config/db/prisma.js";
 import { buildPagination } from "../../common/response.js";
-import { setToWIB } from "../../utils/helpers.js";
+import { setWIBDate, setToWIB } from "../../utils/helpers.js";
 
 const getOrderStocks = async (page, limit) => {
   const orderStockWithMenu = await prisma.stockOrder.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
-    include: {
-      menu: true,
-    },
   });
 
   const pagination = buildPagination(orderStockWithMenu.length, page, limit);
@@ -22,9 +19,6 @@ const getOrderStocks = async (page, limit) => {
 const getOrderStockById = async (id) => {
   const orderStock = await prisma.stockOrder.findUnique({
     where: { id },
-    include: {
-      menu: true,
-    },
   });
 
   if (!orderStock) {
@@ -35,26 +29,24 @@ const getOrderStockById = async (id) => {
 };
 
 const createOrderStock = async (data) => {
-  const { event_date, menu_id, max_stock, current_stock } = data;
+  const { event_date, max_stock, current_stock } = data;
 
   const isExistingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setToWIB(event_date),
-      menuId: menu_id,
+      eventDate: setWIBDate(event_date),
     },
   });
 
   if (isExistingStockOrder) {
     throw {
       statusCode: 400,
-      message: "Sudah ada order stock untuk tanggal dan menu tersebut",
+      message: "Sudah ada order stock untuk tanggal tersebut",
     };
   }
 
   const newOrderStock = await prisma.stockOrder.create({
     data: {
-      eventDate: setToWIB(event_date),
-      menuId: menu_id,
+      eventDate: setWIBDate(event_date),
       maxStock: max_stock,
       currentStock: current_stock,
     },
@@ -64,12 +56,11 @@ const createOrderStock = async (data) => {
 };
 
 const updateOrderStock = async (id, data) => {
-  const { event_date, menu_id, max_stock, current_stock } = data;
+  const { event_date, max_stock, current_stock } = data;
 
   const isExistingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setToWIB(event_date),
-      menuId: menu_id,
+      eventDate: setWIBDate(event_date),
       NOT: {
         id: id,
       },
@@ -79,15 +70,14 @@ const updateOrderStock = async (id, data) => {
   if (isExistingStockOrder) {
     throw {
       statusCode: 400,
-      message: "Sudah ada order stock untuk tanggal dan menu tersebut",
+      message: "Sudah ada order stock untuk tanggal tersebut",
     };
   }
 
   const updatedOrderStock = await prisma.stockOrder.update({
     where: { id },
     data: {
-      eventDate: setToWIB(event_date),
-      menuId: menu_id,
+      eventDate: setWIBDate(event_date),
       maxStock: max_stock,
       currentStock: current_stock,
     },
@@ -111,25 +101,25 @@ const deleteOrderStock = async (id) => {
 };
 
 /**
- * Untuk memeriksa apakah menu tersedia untuk tanggal tertentu dan apakah stok sudah habis
+ * Untuk memeriksa apakah stock order tersedia untuk tanggal tertentu
  * @param {*} date
- * @param {*} menuId
  * @returns { is_available: boolean, out_of_stock: boolean }
  */
-export const validateStockOrderMenu = async (date, menuId) => {
+export const validateStockOrderMenu = async (date) => {
   const existingStockOrder = await prisma.stockOrder.findFirst({
     where: {
       eventDate: setToWIB(date),
-      menuId: menuId,
     },
   });
+
+  console.log({ existingStockOrder });
 
   const outOfStock = existingStockOrder
     ? existingStockOrder.currentStock >= existingStockOrder.maxStock
     : false;
 
   return {
-    is_available: !existingStockOrder || !outOfStock,
+    is_available: existingStockOrder !== null,
     out_of_stock: outOfStock,
   };
 };

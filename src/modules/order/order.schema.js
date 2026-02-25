@@ -1,18 +1,22 @@
 import { z } from "zod";
 
 const createOrderSchema = z.object({
-  customerName: z.string().min(2),
+  customer_name: z.string().min(2),
   phone: z.string().min(9, "No. telp tidak valid"),
   destination: z.string().min(5),
-  eventDate: z
+  order_date: z
     .string()
     .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
   note: z.string().optional(),
-  deliveryMethod: z.enum(["dikirim", "ambil_sendiri"]),
+  delivery_method: z.enum(["dikirim", "ambil_sendiri"], {
+    errorMap: () => ({
+      message: "Metode pengiriman harus 'dikirim' atau 'ambil_sendiri'",
+    }),
+  }),
   items: z
     .array(
       z.object({
-        menuId: z.string().cuid(),
+        menu_id: z.string().cuid(),
         quantity: z.number().int().positive(),
       }),
     )
@@ -20,12 +24,20 @@ const createOrderSchema = z.object({
 });
 
 const updateOrderStatusSchema = z.object({
-  orderStatus: z.enum([
-    "pesanan_diterima",
-    "pesanan_diproses",
-    "pesanan_selesai",
-    "pesanan_dibatalkan",
-  ]),
+  order_status: z.enum(
+    [
+      "pesanan_diterima",
+      "pesanan_diproses",
+      "pesanan_selesai",
+      "pesanan_dibatalkan",
+    ],
+    {
+      errorMap: () => ({
+        message:
+          "Status pesanan tidak valid, harus salah satu dari: 'pesanan_diterima', 'pesanan_diproses', 'pesanan_selesai', 'pesanan_dibatalkan'",
+      }),
+    },
+  ),
 });
 
-export default { createOrderSchema, updateOrderStatusSchema };
+export { createOrderSchema, updateOrderStatusSchema };
