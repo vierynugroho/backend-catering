@@ -1,4 +1,4 @@
-import { sendSuccess } from "../../common/response.js";
+import { sendSuccess, sendWithPagination } from "../../common/response.js";
 import orderService from "./order.service.js";
 
 const createOrder = async (req, res, next) => {
@@ -30,6 +30,39 @@ const createOrder = async (req, res, next) => {
   }
 };
 
+const checkDateOrderStock = async (req, res, next) => {
+  try {
+    const { order_date } = req.body;
+
+    const result = await orderService.checkDateOrderStock(order_date);
+
+    return sendSuccess(res, result, "Cek ketersediaan stock order berhasil");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getOrders = async (req, res, next) => {
+  try {
+    const { page, limit } = req.query;
+    const { orders, pagination } = await orderService.getOrders(
+      Number(page) || null,
+      Number(limit) || null,
+    );
+
+    return sendWithPagination(
+      res,
+      orders,
+      pagination,
+      "Daftar order berhasil diambil",
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createOrder,
+  checkDateOrderStock,
+  getOrders,
 };

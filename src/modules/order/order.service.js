@@ -8,6 +8,7 @@ import {
   generateOrderCode,
   setWIBDate,
 } from "../../utils/helpers.js";
+import { buildPagination } from "../../common/response.js";
 
 export const calculateOrderItems = (items) => {
   const discount = 0;
@@ -76,6 +77,16 @@ const validateOrderStock = async (items, orderDate) => {
       .join("; ");
     throw { statusCode: 400, message: errorMessage };
   }
+};
+
+const checkDateOrderStock = async (orderDate) => {
+  const { is_available, out_of_stock } =
+    await validateStockOrderMenu(orderDate);
+
+  return {
+    is_available,
+    out_of_stock,
+  };
 };
 
 const createOrder = async ({
@@ -174,4 +185,59 @@ const createOrder = async ({
   });
 };
 
-export default { validateOrderStock, createOrder };
+const getOrders = async (page, limit) => {
+  const orders = await prisma.order.findMany({
+    take: limit ?? undefined,
+    skip: page && limit ? (page - 1) * limit : undefined,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      user: true,
+      orderItems: {
+        include: {
+          menu: true,
+        },
+      },
+    },
+  });
+
+  const totalOrders = await prisma.order.count();
+
+  const mappedOrders = orders.map((order) => ({
+    id: order.id,
+    customer_name: order.customerName,
+    ordered_by: {
+      fullname: order.user ? order.user.fullname : null,
+      email: order.user ? order.user.email : null,
+    },
+    phone: order.phone,
+    destination: order.destination,
+    order_date: formatDateResponse(order.eventDate),
+    note: order.note,
+    code: order.code,
+    total_price: order.totalPrice,
+    delivery_method: order.deliveryMethod,
+    items: order.orderItems.map((item) => ({
+      menu_id: item.menuId,
+      menu_name: item.menu.name,
+      menu_price: item.menu.price,
+      menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+    })),
+  }));
+
+  const pagination = buildPagination(totalOrders, page, limit);
+  return {
+    orders: mappedOrders,
+    pagination,
+  };
+};
+
+export default {
+  validateOrderStock,
+  createOrder,
+  checkDateOrderStock,
+  getOrders,
+};

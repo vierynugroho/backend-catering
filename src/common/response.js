@@ -84,14 +84,30 @@ const sendWithPagination = (
 // ----------- / / -----------
 
 const buildPagination = (totalItems, currentPage = 1, pageSize = 10) => {
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const total = Number.isFinite(Number(totalItems)) ? Number(totalItems) : 0;
+
+  let size = Number(pageSize);
+  if (!Number.isFinite(size) || size <= 0) size = 10;
+
+  let page = Number(currentPage);
+  if (!Number.isFinite(page) || page <= 0) page = 1;
+
+  const totalPages = total === 0 ? 0 : Math.ceil(total / size);
+
+  if (totalPages > 0 && page > totalPages) page = totalPages;
+
+  const hasNextPage = totalPages > 0 && page < totalPages;
+  const hasPreviousPage = totalPages > 0 && page > 1;
+
   return {
-    totalItems,
-    currentPage,
-    pageSize,
+    totalItems: total,
+    currentPage: page,
+    pageSize: size,
     totalPages,
-    hasNextPage: currentPage < totalPages,
-    hasPreviousPage: currentPage > 1,
+    hasNextPage,
+    hasPreviousPage,
+    startIndex: totalPages === 0 ? 0 : (page - 1) * size,
+    endIndex: totalPages === 0 ? 0 : Math.min(page * size, total),
   };
 };
 

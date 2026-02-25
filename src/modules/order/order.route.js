@@ -5,15 +5,24 @@ import {
   authenticate,
   authorizeAdmin,
 } from "../../middlewares/auth.middleware.js";
-import { createOrderSchema } from "./order.schema.js";
+import {
+  checkDateOrderStockSchema,
+  createOrderSchema,
+} from "./order.schema.js";
 
 const router = new Router();
 
 // ----------- / / -----------
 // TODO: Order
 // ----------- / / -----------
+
+router
+  .route("/check-date-order-stock")
+  .post(validate(checkDateOrderStockSchema), controller.checkDateOrderStock);
+
 router
   .route("/")
-  .post(authenticate, validate(createOrderSchema), controller.createOrder);
+  .post(authenticate, validate(createOrderSchema), controller.createOrder)
+  .get(authenticate, authorizeAdmin, controller.getOrders);
 
 export default router;

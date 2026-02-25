@@ -40,4 +40,14 @@ const updateOrderStatusSchema = z.object({
   ),
 });
 
-export { createOrderSchema, updateOrderStatusSchema };
+const checkDateOrderStockSchema = z.object({
+  order_date: z
+    .string()
+    .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
+});
+
+export {
+  createOrderSchema,
+  updateOrderStatusSchema,
+  checkDateOrderStockSchema,
+};

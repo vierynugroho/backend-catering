@@ -7,8 +7,9 @@ const getOrderStocks = async (page, limit) => {
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
   });
+  const orderStocksCount = await prisma.stockOrder.count();
 
-  const pagination = buildPagination(orderStockWithMenu.length, page, limit);
+  const pagination = buildPagination(orderStocksCount, page, limit);
 
   return {
     orderStockWithMenu,

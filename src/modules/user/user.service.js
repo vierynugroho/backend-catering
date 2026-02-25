@@ -9,7 +9,9 @@ const getUsers = async (page, limit) => {
     skip: page && limit ? (page - 1) * limit : undefined,
   });
 
-  const pagination = buildPagination(users.length, page, limit);
+  const usersCount = await prisma.user.count();
+
+  const pagination = buildPagination(usersCount, page, limit);
 
   return {
     users,

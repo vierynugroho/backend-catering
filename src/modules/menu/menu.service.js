@@ -171,6 +171,12 @@ const getMenus = async (isAdmin = false, page = 1, limit = 10) => {
     skip: page && limit ? (page - 1) * limit : undefined,
   });
 
+  const menuCount = await prisma.menu.count({
+    where: {
+      isActive: isAdmin ? undefined : true,
+    },
+  });
+
   const mappedData = menuWithCategory.map((menu) => ({
     id: menu.id,
     name: menu.name,
@@ -190,7 +196,7 @@ const getMenus = async (isAdmin = false, page = 1, limit = 10) => {
 
   return {
     menus: mappedData,
-    pagination: buildPagination(mappedData.length, page, limit),
+    pagination: buildPagination(menuCount, page, limit),
   };
 };
 
