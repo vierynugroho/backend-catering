@@ -4,6 +4,7 @@ import validate from "../../middlewares/validate.middleware.js";
 import {
   authenticate,
   authorizeAdmin,
+  authorizeCustomer,
 } from "../../middlewares/auth.middleware.js";
 import {
   checkDateOrderStockSchema,
@@ -23,6 +24,10 @@ router
 router
   .route("/")
   .post(authenticate, validate(createOrderSchema), controller.createOrder)
-  .get(authenticate, authorizeAdmin, controller.getOrders);
+  .get(authenticate, authorizeCustomer, controller.getOrders);
+
+router
+  .route("/:id")
+  .get(authenticate, authorizeCustomer, controller.getOrderById);
 
 export default router;

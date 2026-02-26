@@ -6,6 +6,9 @@ const getOrderStocks = async (page, limit) => {
   const orderStockWithMenu = await prisma.stockOrder.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
+    orderBy: {
+      eventDate: "desc",
+    },
   });
   const orderStocksCount = await prisma.stockOrder.count();
 

@@ -45,9 +45,13 @@ const checkDateOrderStock = async (req, res, next) => {
 const getOrders = async (req, res, next) => {
   try {
     const { page, limit } = req.query;
+    const userId = req.user.id;
+    const isAdmin = req.isAdmin ?? false;
     const { orders, pagination } = await orderService.getOrders(
       Number(page) || null,
       Number(limit) || null,
+      userId,
+      isAdmin,
     );
 
     return sendWithPagination(
@@ -61,8 +65,23 @@ const getOrders = async (req, res, next) => {
   }
 };
 
+const getOrderById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const isAdmin = req.isAdmin ?? false;
+    const order = await orderService.getOrderById(id, userId, isAdmin);
+
+    return sendSuccess(res, order, "Detail order berhasil diambil");
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export default {
   createOrder,
   checkDateOrderStock,
   getOrders,
+  getOrderById,
 };

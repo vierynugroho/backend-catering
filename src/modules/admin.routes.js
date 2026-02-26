@@ -2,9 +2,14 @@ import { Router } from "express";
 import menuController from "./menu/menu.controller.js";
 import userController from "./user/user.controller.js";
 import stockController from "./stock/stock.controller.js";
+import orderController from "./order/order.controller.js";
 import validate from "../middlewares/validate.middleware.js";
 import { createStockSchema, updateStockSchema } from "./stock/stock.schema.js";
 import { createUserSchema, updateUserSchema } from "./user/user.schema.js";
+import {
+  authenticate,
+  authorizeAdmin,
+} from "../middlewares/auth.middleware.js";
 
 const router = new Router();
 
@@ -37,5 +42,15 @@ router
   .get(userController.getUserById)
   .put(validate(updateUserSchema), userController.updateUser)
   .delete(userController.deleteUser);
+
+// ----------- / / -----------
+// TODO: Order
+// ----------- / / -----------
+router
+  .route("/orders")
+  .get(authenticate, authorizeAdmin, orderController.getOrders);
+router
+  .route("/orders/:id")
+  .get(authenticate, authorizeAdmin, orderController.getOrderById);
 
 export default router;

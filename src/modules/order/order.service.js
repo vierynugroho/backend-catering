@@ -185,12 +185,15 @@ const createOrder = async ({
   });
 };
 
-const getOrders = async (page, limit) => {
+const getOrders = async (page, limit, userId, isAdmin) => {
   const orders = await prisma.order.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
     orderBy: {
       createdAt: "desc",
+    },
+    where: {
+      userId: isAdmin ? undefined : userId,
     },
     include: {
       user: true,
@@ -235,9 +238,60 @@ const getOrders = async (page, limit) => {
   };
 };
 
+const getOrderById = async (id, userId, isAdmin) => {
+  const order = await prisma.order.findFirst({
+    where: {
+      id: id,
+      userId: isAdmin ? undefined : userId,
+    },
+    include: {
+      user: true,
+      orderItems: {
+        include: {
+          menu: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw {
+      statusCode: 404,
+      message: "Order tidak ditemukan",
+    };
+  }
+
+  const mappedOrder = {
+    id: order.id,
+    customer_name: order.customerName,
+    ordered_by: {
+      fullname: order.user ? order.user.fullname : null,
+      email: order.user ? order.user.email : null,
+    },
+    phone: order.phone,
+    destination: order.destination,
+    order_date: formatDateResponse(order.eventDate),
+    note: order.note,
+    code: order.code,
+    total_price: order.totalPrice,
+    delivery_method: order.deliveryMethod,
+    items: order.orderItems.map((item) => ({
+      menu_id: item.menuId,
+      menu_name: item.menu.name,
+      menu_price: item.menu.price,
+      menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
+      quantity: item.quantity,
+      subtotal: item.subtotal,
+    })),
+  };
+
+  return mappedOrder || null;
+};
+
 export default {
   validateOrderStock,
-  createOrder,
   checkDateOrderStock,
+  createOrder,
   getOrders,
+  getOrderById,
 };
