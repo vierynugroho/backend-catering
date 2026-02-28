@@ -1,6 +1,6 @@
 import "dotenv/config";
 import momentTZ from "moment-timezone";
-momentTZ.tz.setDefault("Asia/Jakarta");
+momentTZ.tz.setDefault("UTC");
 
 import express, { json, urlencoded } from "express";
 import cors from "cors";

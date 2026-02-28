@@ -1,6 +1,6 @@
 import prisma from "../../config/db/prisma.js";
 import { buildPagination } from "../../common/response.js";
-import { setWIBDate } from "../../utils/helpers.js";
+import { setDate } from "../../utils/helpers.js";
 
 const getOrderStocks = async (page, limit) => {
   const orderStockWithMenu = await prisma.stockOrder.findMany({
@@ -37,7 +37,7 @@ const createOrderStock = async (data) => {
 
   const isExistingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setWIBDate(event_date),
+      eventDate: setDate(event_date),
     },
   });
 
@@ -50,7 +50,7 @@ const createOrderStock = async (data) => {
 
   const newOrderStock = await prisma.stockOrder.create({
     data: {
-      eventDate: setWIBDate(event_date),
+      eventDate: setDate(event_date),
       maxStock: max_stock,
       currentStock: current_stock,
     },
@@ -64,7 +64,7 @@ const updateOrderStock = async (id, data) => {
 
   const isExistingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setWIBDate(event_date),
+      eventDate: setDate(event_date),
       NOT: {
         id: id,
       },
@@ -85,7 +85,7 @@ const updateOrderStock = async (id, data) => {
   const updatedOrderStock = await prisma.stockOrder.update({
     where: { id },
     data: {
-      eventDate: setWIBDate(event_date),
+      eventDate: setDate(event_date),
       maxStock: max_stock,
       currentStock: current_stock,
     },
@@ -116,7 +116,7 @@ const deleteOrderStock = async (id) => {
 export const validateStockOrderMenu = async (date) => {
   const existingStockOrder = await prisma.stockOrder.findFirst({
     where: {
-      eventDate: setWIBDate(date),
+      eventDate: setDate(date),
     },
   });
 

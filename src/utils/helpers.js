@@ -1,48 +1,55 @@
 import moment from "moment";
-const TIMEZONE = "Asia/Jakarta";
+
 /*
  * format phone number to +62
  */
 export const formatPhoneNumber = (phone) => {
   if (!phone) return null;
 
-  const digits = phone.replace(/\D/g, "");
+  const digits = String(phone).replace(/\D/g, "");
 
-  if (digits.startsWith("0")) {
-    return "+62" + digits.slice(1);
-  }
-
-  if (digits.startsWith("62")) {
-    return "+" + digits;
-  }
+  if (digits.startsWith("0")) return "+62" + digits.slice(1);
+  if (digits.startsWith("62")) return "+" + digits;
 
   return digits;
 };
 
-export const getTodayWIB = () => {
-  const start = moment().tz(TIMEZONE).startOf("day").toDate(); // 00:00 WIB
-  const end = moment().tz(TIMEZONE).add(1, "day").startOf("day").toDate(); // H+1 00:00 WIB
+export const getToday = () => {
+  const start = moment().startOf("day").toDate();
+  const end = moment().add(1, "day").startOf("day").toDate();
   return { start, end };
 };
 
 const DATE_ONLY_FORMATS = ["DD-MM-YYYY", "YYYY-MM-DD"];
+const DATETIME_FORMATS = [
+  "YYYY-MM-DD HH:mm:ss",
+  "YYYY-MM-DD HH:mm",
+  ...DATE_ONLY_FORMATS,
+];
 
-export const setToWIB = (value) => {
+const isDateOnlyString = (str) =>
+  DATE_ONLY_FORMATS.some((f) => moment(str, f, true).isValid());
+
+/**
+ * Tanpa TZ:
+ * - "YYYY-MM-DD" / "DD-MM-YYYY" => jadi Date lokal jam 00:00:00
+ * - "YYYY-MM-DD HH:mm[:ss]" => jadi Date lokal sesuai jam input
+ * - ISO-8601 (ada Z / offset) => tetap diparse sesuai offset (native behavior)
+ */
+export const setCustomDate = (value) => {
   if (value === null || value === undefined || value === "") return null;
 
-  // Date object
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime()))
       throw { statusCode: 400, message: "Format tanggal tidak valid" };
-    return moment(value).tz(TIMEZONE).toDate();
+    return value;
   }
 
-  // timestamp in ms
   if (typeof value === "number") {
     const d = new Date(value);
     if (Number.isNaN(d.getTime()))
       throw { statusCode: 400, message: "Format tanggal tidak valid" };
-    return moment(d).tz(TIMEZONE).toDate();
+    return d;
   }
 
   if (typeof value !== "string") {
@@ -51,57 +58,76 @@ export const setToWIB = (value) => {
 
   const str = value.trim();
 
-  const dateOnly = moment.tz(str, DATE_ONLY_FORMATS, true, TIMEZONE);
-  if (dateOnly.isValid()) {
-    return dateOnly.startOf("day").toDate();
+  // date-only => local start of day
+  if (isDateOnlyString(str)) {
+    const m = moment(str, DATE_ONLY_FORMATS, true).startOf("day");
+    if (!m.isValid())
+      throw { statusCode: 400, message: "Format tanggal tidak valid" };
+    return m.toDate();
   }
 
+  // datetime tanpa timezone => local time
+  const dt = moment(str, DATETIME_FORMATS, true);
+  if (dt.isValid()) return dt.toDate();
+
+  // ISO-8601 with offset/Z
   const iso = moment.parseZone(str, moment.ISO_8601, true);
-  if (iso.isValid()) {
-    return iso.tz(TIMEZONE).toDate();
-  }
+  if (iso.isValid()) return iso.toDate();
 
   throw {
     statusCode: 400,
     message:
-      'Invalid date string. Allowed: "DD-MM-YYYY", "YYYY-MM-DD", or ISO-8601.',
+      'Invalid date string. Allowed: "DD-MM-YYYY", "YYYY-MM-DD", "YYYY-MM-DD HH:mm[:ss]", or ISO-8601.',
   };
+};;;;
+
+export const setDateTime = (value) => {
+  const d = setCustomDate(value);
+  if (!d) return null;
+  return d;
 };
 
-export const setWIBDateTime = (value) => {
-  const d = setToWIB(value);
+export const setDate = (value) => {
+  const d = setCustomDate(value);
   if (!d) return null;
-
-  return moment(d).tz(TIMEZONE).toDate();
-};
-
-export const setWIBDate = (value) => {
-  const d = setToWIB(value);
-  if (!d) return null;
-
-  return moment(d).tz(TIMEZONE).startOf("day");
+  return moment(value).startOf("day").toDate();
 };
 
 export const formatDateResponse = (date, show_time = false) => {
   if (!date) return null;
   return show_time
-    ? moment(date).tz(TIMEZONE).format("DD-MM-YYYY HH:mm:ss")
-    : moment(date).tz(TIMEZONE).format("DD-MM-YYYY");
-};
-
-export const formatDateResponseNoTZ = (date, show_time = false) => {
-  if (!date) return null;
-  return show_time
-    ? new Date(date).toISOString().slice(0, 19).replace("T", " ")
+    ? moment(date).format("DD-MM-YYYY HH:mm:ss")
     : moment(date).format("DD-MM-YYYY");
 };
 
-export const generateOrderCode = () => {
-  const datePart = moment().tz(TIMEZONE).format("DDMMYY");
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${datePart}-${randomPart}`;
+/**
+ * "NoTZ" versi bener-bener tanpa konversi timezone:
+ * - show_time: "YYYY-MM-DD HH:mm:ss" (dibaca dari komponen lokal Date)
+ * - date-only: "DD-MM-YYYY"
+ */
+export const formatDateResponseNoTZ = (date, show_time = false) => {
+  if (!date) return null;
+
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+
+  const pad = (n) => String(n).padStart(2, "0");
+
+  if (show_time) {
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const HH = pad(d.getHours());
+    const MM = pad(d.getMinutes());
+    const SS = pad(d.getSeconds());
+    return `${yyyy}-${mm}-${dd} ${HH}:${MM}:${SS}`;
+  }
+
+  return moment(d).format("DD-MM-YYYY");
 };
 
-export const setUTCtoWIB = (date) => {
-  return moment.utc(date).tz(TIMEZONE).toDate();
+export const generateOrderCode = () => {
+  const datePart = moment().format("DDMMYY");
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `ORD-${datePart}-${randomPart}`;
 };

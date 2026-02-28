@@ -4,11 +4,10 @@ import prisma from "../../config/db/prisma.js";
 import {
   formatDateResponse,
   formatPhoneNumber,
-  setWIBDateTime,
+  setDateTime,
   generateOrderCode,
-  setWIBDate,
-  getTodayWIB,
-  formatDateResponseNoTZ,
+  setDate,
+  getToday,
 } from "../../utils/helpers.js";
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
@@ -55,12 +54,6 @@ const validateOrderStock = async (items, orderDate, isUpdate = false) => {
     if (!isUpdate) {
       const { is_available, out_of_stock } =
         await validateStockOrderMenu(orderDate);
-
-      console.log({
-        orderDate,
-        is_available,
-        out_of_stock,
-      });
 
       if (!is_available) {
         insufficientStockItems.push({
@@ -138,23 +131,12 @@ const createOrder = async ({
     });
   }
 
-  const { totalPerItem, totalPrice, discount } =
-    calculateOrderItems(itemsWithPrice);
-
-  console.dir(
-    {
-      payload,
-      totalPerItem,
-      totalPrice,
-      discount,
-    },
-    { depth: null },
-  );
+  const { totalPerItem, totalPrice } = calculateOrderItems(itemsWithPrice);
 
   return await prisma.$transaction(async (prisma) => {
     const newOrder = await prisma.order.create({
       data: {
-        eventDate: setWIBDateTime(payload.order_date),
+        eventDate: setDateTime(payload.order_date),
         note: payload.note,
         userId: payload.user_id,
         code: payload.code,
@@ -168,20 +150,20 @@ const createOrder = async ({
               0,
           })),
         },
-        createdAt: setWIBDateTime(new Date()),
-        updatedAt: setWIBDateTime(new Date()),
+        createdAt: setDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
 
     await prisma.stockOrder.updateMany({
       where: {
-        eventDate: setWIBDate(orderDate),
+        eventDate: setDate(orderDate),
       },
       data: {
         currentStock: {
           increment: 1,
         },
-        updatedAt: setWIBDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
 
@@ -192,9 +174,9 @@ const createOrder = async ({
         recipientName: payload.customer_name,
         recipientPhone: payload.phone,
         deliveryMethod: payload.delivery_method,
-        deliveredAt: setWIBDateTime(payload.order_date),
-        createdAt: setWIBDateTime(new Date()),
-        updatedAt: setWIBDateTime(new Date()),
+        deliveredAt: setDateTime(payload.order_date),
+        createdAt: setDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
     return newOrder;
@@ -233,16 +215,14 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     },
     phone: order.shipping ? order.shipping.recipientPhone : null,
     destination: order.shipping ? order.shipping.destination : null,
-    order_date: formatDateResponseNoTZ(order.eventDate, true),
     note: order.note,
     code: order.code,
+    order_date: order.eventDate,
     order_status: order.orderStatus,
     shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
     total_price: order.totalPrice,
     delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
-    delivered_at: order.shipping
-      ? formatDateResponseNoTZ(order.shipping.deliveredAt, true)
-      : null,
+    delivered_at: order.shipping ? order.shipping.deliveredAt : null,
     shipping_status: order.shipping
       ? order.shipping.shippingStatus
       : "pesanan_disiapkan",
@@ -296,16 +276,14 @@ const getOrderById = async (id, userId, isAdmin) => {
     },
     phone: order.shipping ? order.shipping.recipientPhone : null,
     destination: order.shipping ? order.shipping.destination : null,
-    order_date: formatDateResponseNoTZ(order.eventDate, true),
     note: order.note,
     code: order.code,
+    order_date: order.eventDate,
     order_status: order.orderStatus,
     total_price: order.totalPrice,
     shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
     delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
-    delivered_at: order.shipping
-      ? formatDateResponseNoTZ(order.shipping.deliveredAt, true)
-      : null,
+    delivered_at: order.shipping ? order.shipping.deliveredAt : null,
     shipping_status: order.shipping
       ? order.shipping.shippingStatus
       : "pesanan_disiapkan",
@@ -364,8 +342,8 @@ const updateOrder = async (
     existingOrder.order_status === "pesanan_diproses" &&
     (payload.order_status === "pesanan_diterima" ||
       payload.order_status === "pesanan_dibatalkan" ||
-      !moment(setWIBDate(existingOrder.order_date)).isSame(
-        setWIBDate(payload.order_date),
+      !moment(setDate(existingOrder.order_date)).isSame(
+        setDate(payload.order_date),
         "day",
       ))
   ) {
@@ -397,8 +375,8 @@ const updateOrder = async (
   );
 
   // update stock jika order date diubah dan order date lama belum lewat atau merupakan order baru, atau jika status order diubah menjadi pesanan_diterima atau pesanan_dibatalkan
-  const existingOrderDate = setWIBDate(existingOrder.order_date);
-  const newOrderDate = setWIBDate(orderDate);
+  const existingOrderDate = setDate(existingOrder.order_date);
+  const newOrderDate = setDate(orderDate);
 
   return await prisma.$transaction(async (prisma) => {
     if (
@@ -406,7 +384,7 @@ const updateOrder = async (
       payload.order_status === "pesanan_diterima" ||
       payload.order_status === "pesanan_dibatalkan"
     ) {
-      const today = getTodayWIB().start;
+      const today = getToday().start;
 
       if (
         existingOrderDate >= today ||
@@ -420,7 +398,7 @@ const updateOrder = async (
             currentStock: {
               decrement: 1,
             },
-            updatedAt: setWIBDateTime(new Date()),
+            updatedAt: setDateTime(new Date()),
           },
         });
 
@@ -432,7 +410,7 @@ const updateOrder = async (
             currentStock: {
               increment: 1,
             },
-            updatedAt: setWIBDateTime(new Date()),
+            updatedAt: setDateTime(new Date()),
           },
         });
       }
@@ -441,7 +419,7 @@ const updateOrder = async (
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
-        eventDate: setWIBDateTime(payload.order_date),
+        eventDate: setDateTime(payload.order_date),
         note: payload.note,
         userId: payload.user_id,
         code: payload.code,
@@ -460,7 +438,7 @@ const updateOrder = async (
           })),
         },
 
-        updatedAt: setWIBDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
 
@@ -477,9 +455,9 @@ const updateOrder = async (
           payload.order_status === "pesanan_dibatalkan"
             ? "pesanan_dibatalkan"
             : shippingStatus || existingOrder.shipping_status,
-        deliveredAt: setWIBDateTime(payload.order_date),
+        deliveredAt: setDateTime(payload.order_date),
         shippingCost: payload.shipping_cost,
-        updatedAt: setWIBDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
 
@@ -497,7 +475,7 @@ const deleteOrder = async (id) => {
     };
   }
 
-  const today = getTodayWIB().start;
+  const today = getToday().start;
   // jika order hari ini atau belum lewat atau merupakan order baru, kembalikan stock (increment 1)
   if (
     existingOrder.eventDate >= today ||
@@ -505,13 +483,13 @@ const deleteOrder = async (id) => {
   ) {
     await prisma.stockOrder.updateMany({
       where: {
-        eventDate: setWIBDate(existingOrder.eventDate),
+        eventDate: setDate(existingOrder.eventDate),
       },
       data: {
         currentStock: {
           increment: 1,
         },
-        updatedAt: setWIBDateTime(new Date()),
+        updatedAt: setDateTime(new Date()),
       },
     });
   }
