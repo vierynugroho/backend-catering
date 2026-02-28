@@ -91,6 +91,7 @@ const updateOrder = async (req, res, next) => {
       order_status,
       items,
       shipping_cost,
+      shipping_status,
     } = req.body;
 
     const result = await orderService.updateOrder(id, {
@@ -104,6 +105,7 @@ const updateOrder = async (req, res, next) => {
       deliveryMethod: delivery_method,
       items,
       shippingCost: shipping_cost,
+      shippingStatus: shipping_status,
     });
 
     return sendSuccess(res, result, "Order berhasil diperbarui", 200);

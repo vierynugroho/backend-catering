@@ -59,6 +59,22 @@ const updateOrderSchema = z.object({
     )
     .min(1, "Minimal 1 item"),
   shipping_cost: z.number().min(0).optional(),
+  shipping_status: z
+    .enum(
+      [
+        "pesanan_disiapkan",
+        "pesanan_dalam_proses_pengiriman",
+        "pesanan_dibatalkan",
+        "pesanan_selesai",
+      ],
+      {
+        errorMap: () => ({
+          message:
+            "Status pengiriman tidak valid, harus salah satu dari: 'pesanan_disiapkan', 'pesanan_dalam_proses_pengiriman', 'pesanan_dibatalkan', 'pesanan_selesai'",
+        }),
+      },
+    )
+    .optional(),
 });
 
 const updateOrderStatusSchema = z.object({

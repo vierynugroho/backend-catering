@@ -8,6 +8,7 @@ import {
   generateOrderCode,
   setWIBDate,
   getTodayWIB,
+  formatDateResponseNoTZ,
 } from "../../utils/helpers.js";
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
@@ -153,15 +154,11 @@ const createOrder = async ({
   return await prisma.$transaction(async (prisma) => {
     const newOrder = await prisma.order.create({
       data: {
-        customerName: payload.customer_name,
-        phone: payload.phone,
-        destination: payload.destination,
         eventDate: setWIBDateTime(payload.order_date),
         note: payload.note,
         userId: payload.user_id,
         code: payload.code,
         totalPrice: totalPrice,
-        deliveryMethod: payload.delivery_method,
         orderItems: {
           create: payload.items.map((item) => ({
             menuId: item.menu_id,
@@ -187,6 +184,19 @@ const createOrder = async ({
         updatedAt: setWIBDateTime(new Date()),
       },
     });
+
+    await prisma.shipping.create({
+      data: {
+        orderId: newOrder.id,
+        destination: payload.destination,
+        recipientName: payload.customer_name,
+        recipientPhone: payload.phone,
+        deliveryMethod: payload.delivery_method,
+        deliveredAt: setWIBDateTime(payload.order_date),
+        createdAt: setWIBDateTime(new Date()),
+        updatedAt: setWIBDateTime(new Date()),
+      },
+    });
     return newOrder;
   });
 };
@@ -208,6 +218,7 @@ const getOrders = async (page, limit, userId, isAdmin) => {
           menu: true,
         },
       },
+      shipping: true,
     },
   });
 
@@ -220,14 +231,21 @@ const getOrders = async (page, limit, userId, isAdmin) => {
       fullname: order.user ? order.user.fullname : null,
       email: order.user ? order.user.email : null,
     },
-    phone: order.phone,
-    destination: order.destination,
-    order_date: formatDateResponse(order.eventDate),
+    phone: order.shipping ? order.shipping.recipientPhone : null,
+    destination: order.shipping ? order.shipping.destination : null,
+    order_date: formatDateResponseNoTZ(order.eventDate, true),
     note: order.note,
     code: order.code,
     order_status: order.orderStatus,
+    shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
     total_price: order.totalPrice,
-    delivery_method: order.deliveryMethod,
+    delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
+    delivered_at: order.shipping
+      ? formatDateResponseNoTZ(order.shipping.deliveredAt, true)
+      : null,
+    shipping_status: order.shipping
+      ? order.shipping.shippingStatus
+      : "pesanan_disiapkan",
     items: order.orderItems.map((item) => ({
       menu_id: item.menuId,
       menu_name: item.menu.name,
@@ -258,6 +276,7 @@ const getOrderById = async (id, userId, isAdmin) => {
           menu: true,
         },
       },
+      shipping: true,
     },
   });
 
@@ -275,14 +294,21 @@ const getOrderById = async (id, userId, isAdmin) => {
       fullname: order.user ? order.user.fullname : null,
       email: order.user ? order.user.email : null,
     },
-    phone: order.phone,
-    destination: order.destination,
-    order_date: formatDateResponse(order.eventDate),
+    phone: order.shipping ? order.shipping.recipientPhone : null,
+    destination: order.shipping ? order.shipping.destination : null,
+    order_date: formatDateResponseNoTZ(order.eventDate, true),
     note: order.note,
     code: order.code,
     order_status: order.orderStatus,
     total_price: order.totalPrice,
-    delivery_method: order.deliveryMethod,
+    shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
+    delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
+    delivered_at: order.shipping
+      ? formatDateResponseNoTZ(order.shipping.deliveredAt, true)
+      : null,
+    shipping_status: order.shipping
+      ? order.shipping.shippingStatus
+      : "pesanan_disiapkan",
     items: order.orderItems.map((item) => ({
       menu_id: item.menuId,
       menu_name: item.menu.name,
@@ -309,6 +335,7 @@ const updateOrder = async (
     orderStatus,
     items,
     shippingCost,
+    shippingStatus,
   },
 ) => {
   const existingOrder = await getOrderById(id, userId, true);
@@ -332,14 +359,6 @@ const updateOrder = async (
     })),
   };
 
-  console.log({
-    payload_order_status: payload.order_status,
-    existing_order_status: existingOrder.order_status,
-    is_same_day: moment(setWIBDate(existingOrder.order_date)).isSame(
-      setWIBDate(payload.order_date),
-      "day",
-    ),
-  });
   // jika status order pesanan_diproses, jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
   if (
     existingOrder.order_status === "pesanan_diproses" &&
@@ -420,31 +439,46 @@ const updateOrder = async (
     }
 
     const updatedOrder = await prisma.order.update({
-      where: {
-        id: id,
-      },
+      where: { id },
       data: {
-        customerName: payload.customer_name,
-        phone: payload.phone,
-        destination: payload.destination,
         eventDate: setWIBDateTime(payload.order_date),
         note: payload.note,
         userId: payload.user_id,
         code: payload.code,
-        totalPrice: totalPrice,
+        totalPrice,
         orderStatus: payload.order_status,
-        shippingCost: payload.shipping_cost,
-        deliveryMethod: payload.delivery_method,
         orderItems: {
-          create: payload.items.map((item) => ({
-            menuId: item.menu_id,
-            quantity: item.quantity,
-            subtotal:
-              totalPerItem.find((i) => i.menu_id === item.menu_id)?.subtotal ||
-              0,
+          update: payload.items.map((item) => ({
+            where: { orderId_menuId: { orderId: id, menuId: item.menu_id } },
+            data: {
+              menuId: item.menu_id,
+              quantity: item.quantity,
+              subtotal:
+                totalPerItem.find((i) => i.menu_id === item.menu_id)
+                  ?.subtotal ?? 0,
+            },
           })),
         },
-        createdAt: setWIBDateTime(new Date()),
+
+        updatedAt: setWIBDateTime(new Date()),
+      },
+    });
+
+    await prisma.shipping.updateMany({
+      where: {
+        orderId: id,
+      },
+      data: {
+        destination: payload.destination,
+        recipientName: payload.customer_name,
+        recipientPhone: payload.phone,
+        deliveryMethod: payload.delivery_method,
+        shippingStatus:
+          payload.order_status === "pesanan_dibatalkan"
+            ? "pesanan_dibatalkan"
+            : shippingStatus || existingOrder.shipping_status,
+        deliveredAt: setWIBDateTime(payload.order_date),
+        shippingCost: payload.shipping_cost,
         updatedAt: setWIBDateTime(new Date()),
       },
     });

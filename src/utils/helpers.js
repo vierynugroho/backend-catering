@@ -89,6 +89,13 @@ export const formatDateResponse = (date, show_time = false) => {
     : moment(date).tz(TIMEZONE).format("DD-MM-YYYY");
 };
 
+export const formatDateResponseNoTZ = (date, show_time = false) => {
+  if (!date) return null;
+  return show_time
+    ? new Date(date).toISOString().slice(0, 19).replace("T", " ")
+    : moment(date).format("DD-MM-YYYY");
+};
+
 export const generateOrderCode = () => {
   const datePart = moment().tz(TIMEZONE).format("DDMMYY");
   const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();

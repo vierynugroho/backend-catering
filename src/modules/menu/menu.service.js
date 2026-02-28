@@ -97,6 +97,13 @@ const createMenu = async ({
 
   if (existing) throw { statusCode: 409, message: "Slug menu sudah digunakan" };
 
+  const category = await prisma.category.findUnique({
+    where: { id: category_id },
+  });
+
+  if (category_id && !category)
+    throw { statusCode: 400, message: "Kategori tidak ditemukan" };
+
   return await prisma.menu.create({
     data: {
       name,

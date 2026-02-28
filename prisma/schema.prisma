@@ -103,15 +103,10 @@ model Order {
   id             String         @id @default(cuid())
   orderNumber    String         @unique @default(cuid()) @map("order_number")
   userId         String         @map("user_id")
-  customerName   String         @map("customer_name")
-  phone          String
-  destination    String
   eventDate      DateTime       @map("event_date")
   note           String?
   code           String         @unique @default(cuid())
-  deliveryMethod DeliveryMethod @default(dikirim) @map("delivery_method")
   orderStatus    OrderStatus    @default(pesanan_diterima) @map("order_status")
-  shippingCost   Decimal        @default(0) @map("shipping_cost") @db.Decimal(10, 2)
   totalPrice     Decimal        @map("total_price") @db.Decimal(10, 2)
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
@@ -145,6 +140,7 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menu  Menu  @relation(fields: [menuId], references: [id])
 
+  @@unique([orderId, menuId])
   @@map("order_items")
 }
 
@@ -156,6 +152,10 @@ model Shipping {
   orderId        String         @unique @map("order_id")
   shippingStatus ShippingStatus @default(pesanan_disiapkan) @map("shipping_status")
   trackingNote   String?        @map("tracking_note")
+  destination    String         @map("destination")
+  recipientName  String         @map("recipient_name")
+  recipientPhone String         @map("recipient_phone")
+  deliveryMethod DeliveryMethod @default(dikirim) @map("delivery_method")
   shippingCost   Decimal        @default(0) @map("shipping_cost") @db.Decimal(10, 2)
   deliveredAt    DateTime?      @map("delivered_at")
   createdAt      DateTime       @default(now()) @map("created_at")
