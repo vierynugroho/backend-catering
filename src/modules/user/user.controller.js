@@ -37,7 +37,7 @@ const getUserById = async (req, res, next) => {
 
 const createUser = async (req, res, next) => {
   try {
-    const { fullname, email, password, phone, address, customer_type } =
+    const { fullname, email, password, phone, address, customer_type, role } =
       req.body;
 
     const result = await userService.createUser({
@@ -47,6 +47,7 @@ const createUser = async (req, res, next) => {
       phone,
       address,
       customer_type,
+      role,
     });
     return sendSuccess(res, result, "User berhasil dibuat", 201);
   } catch (err) {
@@ -57,7 +58,7 @@ const createUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { fullname, email, password, phone, address, customer_type } =
+    const { fullname, email, password, phone, address, customer_type, role } =
       req.body;
 
     const result = await userService.updateUser(String(id), {
@@ -67,6 +68,7 @@ const updateUser = async (req, res, next) => {
       phone,
       address,
       customer_type,
+      role,
     });
     return sendSuccess(res, result, "User berhasil diperbarui", 200);
   } catch (err) {

@@ -7,10 +7,12 @@ import {
   setWIBDateTime,
   generateOrderCode,
   setWIBDate,
+  getTodayWIB,
 } from "../../utils/helpers.js";
 import { buildPagination } from "../../common/response.js";
+import moment from "moment";
 
-export const calculateOrderItems = (items) => {
+export const calculateOrderItems = (items, shippingCost = 0) => {
   const discount = 0;
 
   const totalPerItem = items.map((item) => {
@@ -23,7 +25,9 @@ export const calculateOrderItems = (items) => {
   });
 
   const totalPrice =
-    totalPerItem.reduce((total, row) => total + row.subtotal, 0) - discount;
+    totalPerItem.reduce((total, row) => total + row.subtotal, 0) -
+    discount +
+    shippingCost;
 
   return {
     totalPerItem,
@@ -32,7 +36,7 @@ export const calculateOrderItems = (items) => {
   };
 };
 
-const validateOrderStock = async (items, orderDate) => {
+const validateOrderStock = async (items, orderDate, isUpdate = false) => {
   const insufficientStockItems = [];
 
   for (const item of items) {
@@ -47,27 +51,29 @@ const validateOrderStock = async (items, orderDate) => {
       continue;
     }
 
-    const { is_available, out_of_stock } =
-      await validateStockOrderMenu(orderDate);
+    if (!isUpdate) {
+      const { is_available, out_of_stock } =
+        await validateStockOrderMenu(orderDate);
 
-    console.log({
-      orderDate,
-      is_available,
-      out_of_stock,
-    });
-
-    if (!is_available) {
-      insufficientStockItems.push({
-        reason: `Mohon maaf, stock order untuk tanggal ${formatDateResponse(orderDate)} belum tersedia. Silakan pilih tanggal lain atau hubungi admin untuk informasi lebih lanjut.`,
+      console.log({
+        orderDate,
+        is_available,
+        out_of_stock,
       });
-      continue;
-    }
 
-    if (out_of_stock) {
-      insufficientStockItems.push({
-        reason: `Mohon maaf, kami sedang pesanan untuk tanggal ${formatDateResponse(orderDate)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
-      });
-      continue;
+      if (!is_available) {
+        insufficientStockItems.push({
+          reason: `Mohon maaf, stock order untuk tanggal ${formatDateResponse(orderDate)} belum tersedia. Silakan pilih tanggal lain atau hubungi admin untuk informasi lebih lanjut.`,
+        });
+        continue;
+      }
+
+      if (out_of_stock) {
+        insufficientStockItems.push({
+          reason: `Mohon maaf, kami sedang pesanan untuk tanggal ${formatDateResponse(orderDate)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
+        });
+        continue;
+      }
     }
   }
 
@@ -219,6 +225,7 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     order_date: formatDateResponse(order.eventDate),
     note: order.note,
     code: order.code,
+    order_status: order.orderStatus,
     total_price: order.totalPrice,
     delivery_method: order.deliveryMethod,
     items: order.orderItems.map((item) => ({
@@ -273,6 +280,7 @@ const getOrderById = async (id, userId, isAdmin) => {
     order_date: formatDateResponse(order.eventDate),
     note: order.note,
     code: order.code,
+    order_status: order.orderStatus,
     total_price: order.totalPrice,
     delivery_method: order.deliveryMethod,
     items: order.orderItems.map((item) => ({
@@ -288,10 +296,221 @@ const getOrderById = async (id, userId, isAdmin) => {
   return mappedOrder || null;
 };
 
+const updateOrder = async (
+  id,
+  {
+    userId,
+    customerName,
+    phone,
+    destination,
+    orderDate,
+    note,
+    deliveryMethod,
+    orderStatus,
+    items,
+    shippingCost,
+  },
+) => {
+  const existingOrder = await getOrderById(id, userId, true);
+
+  await validateOrderStock(items, orderDate, true);
+
+  const payload = {
+    user_id: userId,
+    customer_name: customerName,
+    phone: formatPhoneNumber(phone),
+    destination,
+    order_date: orderDate,
+    shipping_cost: shippingCost || 0,
+    note,
+    code: generateOrderCode(),
+    delivery_method: deliveryMethod,
+    order_status: orderStatus || existingOrder.order_status,
+    items: items.map((item) => ({
+      menu_id: item.menu_id,
+      quantity: item.quantity,
+    })),
+  };
+
+  console.log({
+    payload_order_status: payload.order_status,
+    existing_order_status: existingOrder.order_status,
+    is_same_day: moment(setWIBDate(existingOrder.order_date)).isSame(
+      setWIBDate(payload.order_date),
+      "day",
+    ),
+  });
+  // jika status order pesanan_diproses, jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
+  if (
+    existingOrder.order_status === "pesanan_diproses" &&
+    (payload.order_status === "pesanan_diterima" ||
+      payload.order_status === "pesanan_dibatalkan" ||
+      !moment(setWIBDate(existingOrder.order_date)).isSame(
+        setWIBDate(payload.order_date),
+        "day",
+      ))
+  ) {
+    throw {
+      statusCode: 400,
+      message:
+        "Tidak dapat mengubah status menjadi pesanan_diterima atau pesanan_dibatalkan atau mengubah tanggal order karena status order saat ini adalah pesanan_diproses",
+    };
+  }
+
+  let itemsWithPrice = [];
+  for (const item of items) {
+    const menu = await menuService.getMenuById(item.menu_id);
+    if (!menu) {
+      throw {
+        statusCode: 400,
+        message: `Menu dengan ID ${item.menu_id} tidak ditemukan`,
+      };
+    }
+    itemsWithPrice.push({
+      ...item,
+      price: menu.price,
+    });
+  }
+
+  const { totalPerItem, totalPrice } = calculateOrderItems(
+    itemsWithPrice,
+    shippingCost,
+  );
+
+  // update stock jika order date diubah dan order date lama belum lewat atau merupakan order baru, atau jika status order diubah menjadi pesanan_diterima atau pesanan_dibatalkan
+  const existingOrderDate = setWIBDate(existingOrder.order_date);
+  const newOrderDate = setWIBDate(orderDate);
+
+  return await prisma.$transaction(async (prisma) => {
+    if (
+      !moment(existingOrderDate).isSame(newOrderDate, "day") ||
+      payload.order_status === "pesanan_diterima" ||
+      payload.order_status === "pesanan_dibatalkan"
+    ) {
+      const today = getTodayWIB().start;
+
+      if (
+        existingOrderDate >= today ||
+        existingOrder.order_status === "pesanan_dibatalkan"
+      ) {
+        await prisma.stockOrder.updateMany({
+          where: {
+            eventDate: existingOrderDate,
+          },
+          data: {
+            currentStock: {
+              decrement: 1,
+            },
+            updatedAt: setWIBDateTime(new Date()),
+          },
+        });
+
+        await prisma.stockOrder.updateMany({
+          where: {
+            eventDate: newOrderDate,
+          },
+          data: {
+            currentStock: {
+              increment: 1,
+            },
+            updatedAt: setWIBDateTime(new Date()),
+          },
+        });
+      }
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: id,
+      },
+      data: {
+        customerName: payload.customer_name,
+        phone: payload.phone,
+        destination: payload.destination,
+        eventDate: setWIBDateTime(payload.order_date),
+        note: payload.note,
+        userId: payload.user_id,
+        code: payload.code,
+        totalPrice: totalPrice,
+        orderStatus: payload.order_status,
+        shippingCost: payload.shipping_cost,
+        deliveryMethod: payload.delivery_method,
+        orderItems: {
+          create: payload.items.map((item) => ({
+            menuId: item.menu_id,
+            quantity: item.quantity,
+            subtotal:
+              totalPerItem.find((i) => i.menu_id === item.menu_id)?.subtotal ||
+              0,
+          })),
+        },
+        createdAt: setWIBDateTime(new Date()),
+        updatedAt: setWIBDateTime(new Date()),
+      },
+    });
+
+    return updatedOrder;
+  });
+};
+
+const deleteOrder = async (id) => {
+  const existingOrder = await getOrderById(id, null, true);
+
+  if (existingOrder.order_status === "pesanan_diproses") {
+    throw {
+      statusCode: 400,
+      message: "Tidak dapat menghapus order dengan status pesanan_diproses",
+    };
+  }
+
+  const today = getTodayWIB().start;
+  // jika order hari ini atau belum lewat atau merupakan order baru, kembalikan stock (increment 1)
+  if (
+    existingOrder.eventDate >= today ||
+    existingOrder.order_status === "pesanan_diterima"
+  ) {
+    await prisma.stockOrder.updateMany({
+      where: {
+        eventDate: setWIBDate(existingOrder.eventDate),
+      },
+      data: {
+        currentStock: {
+          increment: 1,
+        },
+        updatedAt: setWIBDateTime(new Date()),
+      },
+    });
+  }
+
+  const deletedOrder = await prisma.$transaction(async (prisma) => {
+    await prisma.shipping.deleteMany({
+      where: {
+        orderId: id,
+      },
+    });
+
+    await prisma.orderItem.deleteMany({
+      where: {
+        orderId: id,
+      },
+    });
+
+    await prisma.order.delete({
+      where: {
+        id,
+      },
+    });
+  });
+
+  return deletedOrder;
+};
+
 export default {
   validateOrderStock,
   checkDateOrderStock,
   createOrder,
   getOrders,
   getOrderById,
+  updateOrder,
+  deleteOrder,
 };

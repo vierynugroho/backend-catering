@@ -78,10 +78,57 @@ const getOrderById = async (req, res, next) => {
   }
 };
 
+const updateOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      customer_name,
+      phone,
+      destination,
+      order_date,
+      note,
+      delivery_method,
+      order_status,
+      items,
+      shipping_cost,
+    } = req.body;
+
+    const result = await orderService.updateOrder(id, {
+      userId: req.user.id,
+      customerName: customer_name,
+      phone,
+      destination,
+      orderDate: order_date,
+      note,
+      orderStatus: order_status,
+      deliveryMethod: delivery_method,
+      items,
+      shippingCost: shipping_cost,
+    });
+
+    return sendSuccess(res, result, "Order berhasil diperbarui", 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    await orderService.deleteOrder(id);
+
+    return sendSuccess(res, null, "Order berhasil dihapus");
+  } catch (err) {
+    next(err);
+  }
+};
 
 export default {
   createOrder,
   checkDateOrderStock,
   getOrders,
   getOrderById,
+  updateOrder,
+  deleteOrder,
 };

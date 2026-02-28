@@ -10,6 +10,10 @@ import {
   authenticate,
   authorizeAdmin,
 } from "../middlewares/auth.middleware.js";
+import {
+  updateOrderSchema,
+  updateOrderStatusSchema,
+} from "./order/order.schema.js";
 
 const router = new Router();
 
@@ -51,6 +55,13 @@ router
   .get(authenticate, authorizeAdmin, orderController.getOrders);
 router
   .route("/orders/:id")
-  .get(authenticate, authorizeAdmin, orderController.getOrderById);
+  .get(authenticate, authorizeAdmin, orderController.getOrderById)
+  .put(
+    authenticate,
+    authorizeAdmin,
+    validate(updateOrderSchema),
+    orderController.updateOrder,
+  )
+  .delete(authenticate, authorizeAdmin, orderController.deleteOrder);
 
 export default router;

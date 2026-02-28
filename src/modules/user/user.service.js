@@ -32,7 +32,19 @@ const getUserById = async (id) => {
 };
 
 const createUser = async (data) => {
-  const { fullname, email, password, phone, address, customer_type } = data;
+  const { fullname, email, password, phone, address, customer_type, role } =
+    data;
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingUser) {
+    throw {
+      statusCode: 400,
+      message: "Email sudah terdaftar, silakan gunakan email lain",
+    };
+  }
 
   const newUser = await prisma.user.create({
     data: {
@@ -41,6 +53,7 @@ const createUser = async (data) => {
       password: await bcryptjs.hash(password, 12),
       phone: formatPhoneNumber(phone),
       address,
+      role: role || "customer",
       customerType: customer_type,
     },
   });
@@ -49,7 +62,26 @@ const createUser = async (data) => {
 };
 
 const updateUser = async (id, data) => {
-  const { fullname, email, password, phone, address, customer_type } = data;
+  const { fullname, email, password, phone, address, customer_type, role } =
+    data;
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!existingUser) {
+    throw {
+      statusCode: 404,
+      message: "User tidak ditemukan",
+    };
+  }
+
+  if (existingUser && existingUser.id !== id) {
+    throw {
+      statusCode: 400,
+      message: "Email sudah terdaftar, silakan gunakan email lain",
+    };
+  }
 
   const updatedUser = await prisma.user.update({
     where: { id },
@@ -60,6 +92,7 @@ const updateUser = async (id, data) => {
       phone: phone ? formatPhoneNumber(phone) : undefined,
       address,
       customerType: customer_type,
+      role,
     },
   });
 
