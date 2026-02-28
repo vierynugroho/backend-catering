@@ -107,6 +107,7 @@ model Order {
   note           String?
   code           String         @unique @default(cuid())
   orderStatus    OrderStatus    @default(pesanan_diterima) @map("order_status")
+  discount       Decimal        @default(0) @map("discount") @db.Decimal(10, 2)
   totalPrice     Decimal        @map("total_price") @db.Decimal(10, 2)
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")

@@ -50,6 +50,7 @@ const updateOrderSchema = z.object({
       }),
     },
   ),
+  discount: z.coerce.number().min(0).optional(),
   items: z
     .array(
       z.object({

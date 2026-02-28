@@ -12,9 +12,7 @@ import {
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
 
-export const calculateOrderItems = (items, shippingCost = 0) => {
-  const discount = 0;
-
+export const calculateOrderItems = (items, shippingCost = 0, discount = 0) => {
   const totalPerItem = items.map((item) => {
     const subtotal = Number(item.quantity) * Number(item.price);
     return {
@@ -28,6 +26,14 @@ export const calculateOrderItems = (items, shippingCost = 0) => {
     totalPerItem.reduce((total, row) => total + row.subtotal, 0) -
     discount +
     shippingCost;
+
+  if (totalPrice < 0) {
+    throw {
+      statusCode: 400,
+      message:
+        "Total harga tidak boleh negatif, pastikan diskon tidak melebihi total harga sebelum diskon",
+    };
+  }
 
   return {
     totalPerItem,
@@ -131,7 +137,8 @@ const createOrder = async ({
     });
   }
 
-  const { totalPerItem, totalPrice } = calculateOrderItems(itemsWithPrice);
+  const { totalPerItem, totalPrice, discount } =
+    calculateOrderItems(itemsWithPrice);
 
   return await prisma.$transaction(async (prisma) => {
     const newOrder = await prisma.order.create({
@@ -141,6 +148,7 @@ const createOrder = async ({
         userId: payload.user_id,
         code: payload.code,
         totalPrice: totalPrice,
+        discount: discount,
         orderItems: {
           create: payload.items.map((item) => ({
             menuId: item.menu_id,
@@ -219,8 +227,11 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
-    shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
-    total_price: order.totalPrice,
+    shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
+    total_price: parseFloat(order.totalPrice),
+    discount: parseFloat(order.discount),
+    normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
+    final_price: parseFloat(order.totalPrice),
     delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
     delivered_at: order.shipping ? order.shipping.deliveredAt : null,
     shipping_status: order.shipping
@@ -229,10 +240,10 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     items: order.orderItems.map((item) => ({
       menu_id: item.menuId,
       menu_name: item.menu.name,
-      menu_price: item.menu.price,
+      menu_price: parseFloat(item.menu.price),
       menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
-      quantity: item.quantity,
-      subtotal: item.subtotal,
+      quantity: parseInt(item.quantity),
+      subtotal: parseFloat(item.subtotal),
     })),
   }));
 
@@ -280,8 +291,10 @@ const getOrderById = async (id, userId, isAdmin) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
-    total_price: order.totalPrice,
-    shipping_cost: order.shipping ? order.shipping.shippingCost : 0,
+    discount: parseFloat(order.discount),
+    normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
+    final_price: parseFloat(order.totalPrice),
+    shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
     delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
     delivered_at: order.shipping ? order.shipping.deliveredAt : null,
     shipping_status: order.shipping
@@ -290,10 +303,10 @@ const getOrderById = async (id, userId, isAdmin) => {
     items: order.orderItems.map((item) => ({
       menu_id: item.menuId,
       menu_name: item.menu.name,
-      menu_price: item.menu.price,
+      menu_price: parseFloat(item.menu.price),
       menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
-      quantity: item.quantity,
-      subtotal: item.subtotal,
+      quantity: parseInt(item.quantity),
+      subtotal: parseFloat(item.subtotal),
     })),
   };
 
@@ -314,6 +327,7 @@ const updateOrder = async (
     items,
     shippingCost,
     shippingStatus,
+    discount,
   },
 ) => {
   const existingOrder = await getOrderById(id, userId, true);
@@ -369,10 +383,11 @@ const updateOrder = async (
     });
   }
 
-  const { totalPerItem, totalPrice } = calculateOrderItems(
-    itemsWithPrice,
-    shippingCost,
-  );
+  const {
+    totalPerItem,
+    totalPrice,
+    discount: calculatedDiscount,
+  } = calculateOrderItems(itemsWithPrice, shippingCost, discount);
 
   // update stock jika order date diubah dan order date lama belum lewat atau merupakan order baru, atau jika status order diubah menjadi pesanan_diterima atau pesanan_dibatalkan
   const existingOrderDate = setDate(existingOrder.order_date);
@@ -424,6 +439,7 @@ const updateOrder = async (
         userId: payload.user_id,
         code: payload.code,
         totalPrice,
+        discount: calculatedDiscount,
         orderStatus: payload.order_status,
         orderItems: {
           update: payload.items.map((item) => ({

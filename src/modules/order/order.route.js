@@ -3,7 +3,6 @@ import controller from "./order.controller.js";
 import validate from "../../middlewares/validate.middleware.js";
 import {
   authenticate,
-  authorizeAdmin,
   authorizeCustomer,
 } from "../../middlewares/auth.middleware.js";
 import {
