@@ -33,4 +33,10 @@ const updateUserSchema = z.object({
   address: z.string().min(5, "Alamat minimal 5 karakter").optional(),
 });
 
-export { createUserSchema, updateUserSchema };
+const searchUserSchema = z.object({
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+  search: z.string().optional(),
+});
+
+export { createUserSchema, updateUserSchema, searchUserSchema };

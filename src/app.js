@@ -16,9 +16,6 @@ import adminRoutes from "./modules/admin.routes.js";
 import orderRoutes from "./modules/order/order.route.js";
 import { authenticate, authorizeAdmin } from "./middlewares/auth.middleware.js";
 import reportRoutes from "./modules/report/report.route.js";
-// const shippingRoutes = require("./modules/shipping/shipping.routes");
-// const userRoutes = require("./modules/users/user.routes");
-// const stockRoutes = require("./modules/stock/stock.routes");
 
 const app = express();
 
@@ -84,9 +81,6 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/menus", menuRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reports", reportRoutes);
-// app.use("/api/shipping", shippingRoutes);
-// app.use("/api/users", userRoutes);
-// app.use("/api/stock", stockRoutes);
 
 // 404
 app.use((req, res) => {

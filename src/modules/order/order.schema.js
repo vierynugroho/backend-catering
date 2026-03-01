@@ -101,9 +101,43 @@ const checkDateOrderStockSchema = z.object({
     .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
 });
 
+const orderQuerySchema = z.object({
+  order_status: z
+    .enum(
+      [
+        "pesanan_diterima",
+        "pesanan_diproses",
+        "pesanan_selesai",
+        "pesanan_dibatalkan",
+      ],
+      {
+        message:
+          "Status harus salah satu dari: pesanan_diterima, pesanan_diproses, pesanan_selesai, pesanan_dibatalkan",
+      },
+    )
+    .optional(),
+  search: z.string().optional(),
+  shipping_status: z
+    .enum(
+      [
+        "pesanan_disiapkan",
+        "pesanan_dalam_proses_pengiriman",
+        "pesanan_dibatalkan",
+        "pesanan_selesai",
+      ],
+      {
+        message:
+          "Status harus salah satu dari: pesanan_disiapkan, pesanan_dalam_proses_pengiriman, pesanan_dibatalkan, pesanan_selesai",
+      },
+    )
+    .optional(),
+  delivery_method: z.enum(["dikirim", "ambil_sendiri"]).optional(),
+});
+
 export {
   createOrderSchema,
   updateOrderSchema,
   updateOrderStatusSchema,
   checkDateOrderStockSchema,
+  orderQuerySchema,
 };

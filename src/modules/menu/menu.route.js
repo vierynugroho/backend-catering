@@ -8,6 +8,8 @@ import {
 import {
   createCategorySchema,
   createMenuSchema,
+  searchCategorySchema,
+  searchMenuSchema,
   updateCategorySchema,
   updateMenuSchema,
 } from "./menu.schema.js";
@@ -16,6 +18,7 @@ import {
   handleMulterError,
   uploadMultiple,
 } from "../../middlewares/upload.middleware.js";
+import { rangeDateSchema } from "../report/report.schema.js";
 
 const router = new Router();
 
@@ -25,7 +28,10 @@ const router = new Router();
 
 router
   .route("/categories")
-  .get(controller.getAllCategories)
+  .get(
+    validate.query([rangeDateSchema, searchCategorySchema]),
+    controller.getAllCategories,
+  )
   .post(
     authenticate,
     authorizeAdmin,
@@ -49,7 +55,7 @@ router
 
 router
   .route("/")
-  .get(controller.getMenus)
+  .get(validate.query([rangeDateSchema, searchMenuSchema]), controller.getMenus)
   .post(
     authenticate,
     authorizeAdmin,

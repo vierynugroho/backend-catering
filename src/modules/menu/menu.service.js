@@ -43,12 +43,37 @@ const updateCategory = async (id, { name, slug }) => {
   });
 };
 
-const getAllCategories = async () => {
-  return await prisma.category.findMany({
+const getAllCategories = async (filters) => {
+  const { from, to, name, page, limit } = filters;
+  const categories = await prisma.category.findMany({
+    where: {
+      createdAt: {
+        gte: from ? new Date(from) : undefined,
+        lte: to ? new Date(to) : undefined,
+      },
+      name: name ? { contains: name, mode: "insensitive" } : undefined,
+    },
     orderBy: {
       name: "asc",
     },
+    take: limit ?? undefined,
+    skip: page && limit ? (page - 1) * limit : undefined,
   });
+
+  const totalCount = await prisma.category.count({
+    where: {
+      createdAt: {
+        gte: from ? new Date(from) : undefined,
+        lte: to ? new Date(to) : undefined,
+      },
+      name: name ? { contains: name, mode: "insensitive" } : undefined,
+    },
+  });
+
+  return {
+    categories,
+    pagination: buildPagination(totalCount, page, limit),
+  };
 };
 
 const deleteCategory = async (id) => {
@@ -163,13 +188,17 @@ const updateMenu = async (
   });
 };;
 
-const getMenus = async (isAdmin = false, page = 1, limit = 10) => {
+const getMenus = async (filters) => {
+  const { isAdmin, page, limit, from, to, name } = filters;
   const menuWithCategory = await prisma.menu.findMany({
-    orderBy: {
-      name: "asc",
-    },
+    orderBy: [{ price: "asc" }, { name: "asc" }],
     where: {
       isActive: isAdmin ? undefined : true,
+      createdAt: {
+        gte: from ? new Date(from) : undefined,
+        lte: to ? new Date(to) : undefined,
+      },
+      name: name ? { contains: name, mode: "insensitive" } : undefined,
     },
     include: {
       category: true,
@@ -181,6 +210,11 @@ const getMenus = async (isAdmin = false, page = 1, limit = 10) => {
   const menuCount = await prisma.menu.count({
     where: {
       isActive: isAdmin ? undefined : true,
+      createdAt: {
+        gte: from ? new Date(from) : undefined,
+        lte: to ? new Date(to) : undefined,
+      },
+      name: name ? { contains: name, mode: "insensitive" } : undefined,
     },
   });
 

@@ -44,15 +44,27 @@ const checkDateOrderStock = async (req, res, next) => {
 
 const getOrders = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
+    const {
+      page,
+      limit,
+      search,
+      shipping_status,
+      order_status,
+      delivery_method,
+    } = req.query;
     const userId = req.user.id;
     const isAdmin = req.isAdmin ?? false;
-    const { orders, pagination } = await orderService.getOrders(
-      Number(page) || null,
-      Number(limit) || null,
-      userId,
+    const filters = {
+      search,
+      shipping_status,
+      order_status,
+      delivery_method,
       isAdmin,
-    );
+      userId,
+      page: Number(page) || null,
+      limit: Number(limit) || null,
+    };
+    const { orders, pagination } = await orderService.getOrders(filters);
 
     return sendWithPagination(
       res,

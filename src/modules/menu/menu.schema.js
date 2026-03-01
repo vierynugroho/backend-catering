@@ -28,9 +28,23 @@ const updateCategorySchema = z.object({
   slug: z.string().min(2, "Slug kategori minimal 2 karakter"),
 });
 
+const searchMenuSchema = z.object({
+  name: z.string().optional(),
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+});
+
+const searchCategorySchema = z.object({
+  name: z.string().optional(),
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+});
+
 export {
   createMenuSchema,
   updateMenuSchema,
   createCategorySchema,
   updateCategorySchema,
+  searchMenuSchema,
+  searchCategorySchema,
 };

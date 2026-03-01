@@ -101,7 +101,6 @@ model StockOrder {
 // ================================
 model Order {
   id             String         @id @default(cuid())
-  orderNumber    String         @unique @default(cuid()) @map("order_number")
   userId         String         @map("user_id")
   eventDate      DateTime       @map("event_date")
   note           String?

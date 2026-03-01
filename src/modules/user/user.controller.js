@@ -7,11 +7,15 @@ import {
 
 const getUsers = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const result = await userService.getUsers(
-      Number(page) || null,
-      Number(limit) || null,
-    );
+    const { page, limit, from, to, search } = req.query;
+    const filters = {
+      from,
+      to,
+      search,
+      page: Number(page) || null,
+      limit: Number(limit) || null,
+    };
+    const result = await userService.getUsers(filters);
     return sendWithPagination(
       res,
       result.users,

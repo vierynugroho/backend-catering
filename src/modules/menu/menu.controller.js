@@ -30,8 +30,22 @@ const updateCategory = async (req, res, next) => {
 
 const getAllCategories = async (req, res, next) => {
   try {
-    const categories = await menuService.getAllCategories();
-    return sendSuccess(res, categories, "Daftar kategori berhasil diambil");
+    const { from, to, name, page, limit } = req.query;
+    const filters = {
+      from,
+      to,
+      name,
+      page: Number(page) || null,
+      limit: Number(limit) || null,
+    };
+    const { categories, pagination } =
+      await menuService.getAllCategories(filters);
+    return sendWithPagination(
+      res,
+      categories,
+      pagination,
+      "Daftar kategori berhasil diambil",
+    );
   } catch (error) {
     next(error);
   }
@@ -53,12 +67,16 @@ const deleteCategory = async (req, res, next) => {
 
 const getMenus = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const { menus, pagination } = await menuService.getMenus(
-      req.isAdmin ? true : false,
-      Number(page) || null,
-      Number(limit) || null,
-    );
+    const { page, limit, name, from, to } = req.query;
+    const filters = {
+      isAdmin: req.isAdmin ? true : false,
+      page: Number(page) || null,
+      limit: Number(limit) || null,
+      name,
+      from,
+      to,
+    };
+    const { menus, pagination } = await menuService.getMenus(filters);
     return sendWithPagination(
       res,
       menus,

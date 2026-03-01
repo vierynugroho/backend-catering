@@ -2,15 +2,23 @@ import prisma from "../../config/db/prisma.js";
 import { buildPagination } from "../../common/response.js";
 import { setDate } from "../../utils/helpers.js";
 
-const getOrderStocks = async (page, limit) => {
+const getOrderStocks = async (filters) => {
+  const { page, limit, search } = filters;
   const orderStockWithMenu = await prisma.stockOrder.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
+    where: {
+      eventDate: search ? setDate(search) : undefined,
+    },
     orderBy: {
       eventDate: "desc",
     },
   });
-  const orderStocksCount = await prisma.stockOrder.count();
+  const orderStocksCount = await prisma.stockOrder.count({
+    where: {
+      eventDate: search ? setDate(search) : undefined,
+    },
+  });
 
   const pagination = buildPagination(orderStocksCount, page, limit);
 

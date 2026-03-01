@@ -41,4 +41,11 @@ const updateStockSchema = z.object({
     .optional(),
 });
 
-export { createStockSchema, updateStockSchema };
+const searchStockSchema = z.object({
+  search: z.coerce
+    .string()
+    .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" })
+    .optional(),
+});
+
+export { createStockSchema, updateStockSchema, searchStockSchema };

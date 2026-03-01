@@ -191,7 +191,18 @@ const createOrder = async ({
   });
 };
 
-const getOrders = async (page, limit, userId, isAdmin) => {
+const getOrders = async (filters) => {
+  const {
+    page,
+    limit,
+    userId,
+    isAdmin,
+    search,
+    shipping_status,
+    order_status,
+    delivery_method,
+  } = filters;
+  console.log({ filters });
   const orders = await prisma.order.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
@@ -201,6 +212,27 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     ],
     where: {
       userId: isAdmin ? undefined : userId,
+      orderStatus: order_status ?? undefined,
+      shipping: {
+        shippingStatus: shipping_status ?? undefined,
+        deliveryMethod: delivery_method ?? undefined,
+      },
+      OR: search
+        ? [
+            { user: { fullname: { contains: search, mode: "insensitive" } } },
+            { code: { contains: search, mode: "insensitive" } },
+            {
+              shipping: {
+                recipientName: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+                recipientPhone: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+              },
+            },
+          ]
+        : undefined,
     },
     include: {
       user: true,
@@ -213,7 +245,32 @@ const getOrders = async (page, limit, userId, isAdmin) => {
     },
   });
 
-  const totalOrders = await prisma.order.count();
+  const totalOrders = await prisma.order.count({
+    where: {
+      userId: isAdmin ? undefined : userId,
+      orderStatus: order_status ?? undefined,
+      shipping: {
+        shippingStatus: shipping_status ?? undefined,
+        deliveryMethod: delivery_method ?? undefined,
+      },
+      OR: search
+        ? [
+            { user: { fullname: { contains: search, mode: "insensitive" } } },
+            { code: { contains: search, mode: "insensitive" } },
+            {
+              shipping: {
+                recipientName: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+                recipientPhone: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+              },
+            },
+          ]
+        : undefined,
+    },
+  });
 
   const mappedOrders = orders.map((order) => ({
     id: order.id,

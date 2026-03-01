@@ -8,7 +8,9 @@ import {
 import {
   checkDateOrderStockSchema,
   createOrderSchema,
+  orderQuerySchema,
 } from "./order.schema.js";
+import { rangeDateSchema } from "../report/report.schema.js";
 
 const router = new Router();
 
@@ -23,7 +25,12 @@ router
 router
   .route("/")
   .post(authenticate, validate(createOrderSchema), controller.createOrder)
-  .get(authenticate, authorizeCustomer, controller.getOrders);
+  .get(
+    authenticate,
+    authorizeCustomer,
+    validate.query([rangeDateSchema, orderQuerySchema]),
+    controller.getOrders,
+  );
 
 router
   .route("/:id")

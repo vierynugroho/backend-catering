@@ -7,11 +7,13 @@ import {
 
 const getOrderStocks = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const result = await stockOrderService.getOrderStocks(
-      Number(page) || null,
-      Number(limit) || null,
-    );
+    const { page, limit, search } = req.query;
+    const filters = {
+      search: search ? new Date(search) : null,
+      limit: Number(limit) || null,
+      page: Number(page) || null,
+    };
+    const result = await stockOrderService.getOrderStocks(filters);
     return sendWithPagination(
       res,
       result.orderStockWithMenu,
