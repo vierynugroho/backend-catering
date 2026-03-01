@@ -26,7 +26,10 @@ app.use(helmet());
 app.use(compression()); // gzip compression
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    // multiple
+    origin: process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(",").map((origin) => origin.trim())
+      : "*",
     credentials: true,
   }),
 );
