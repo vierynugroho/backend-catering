@@ -20,7 +20,11 @@ export const dataKeyToSnakeCase = (data, { decimal = "string" } = {}) => {
 
   if (isPrismaDecimal(data)) {
     if (decimal === "number") return data.toNumber();
-    return data.toString();
+    return data.toNumber();
+  }
+
+  if (typeof data === "number") {
+    return data;
   }
 
   if (data !== null && typeof data === "object") {

@@ -195,9 +195,10 @@ const getOrders = async (page, limit, userId, isAdmin) => {
   const orders = await prisma.order.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      { eventDate: "desc" }, // prioritas 1
+      { createdAt: "desc" }, // prioritas 2 (tie-breaker)
+    ],
     where: {
       userId: isAdmin ? undefined : userId,
     },

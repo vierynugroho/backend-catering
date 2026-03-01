@@ -10,6 +10,8 @@ const authenticate = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
     const decoded = verifyToken(token);
+    req.isAdmin = decoded.role === "admin";
+    req.isCustomer = decoded.role === "customer";
     req.user = decoded;
     next();
   } catch (err) {
