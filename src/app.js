@@ -35,15 +35,15 @@ app.use(
 );
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 menit
-  max: 100,
-  message: {
-    success: false,
-    message: "Too many requests, please try again later.",
-  },
-});
-app.use("/api/", limiter);
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 menit
+//   max: 100,
+//   message: {
+//     success: false,
+//     message: "Too many requests, please try again later.",
+//   },
+// });
+// app.use("/api/", limiter);
 
 // Auth rate limit lebih ketat
 const authLimiter = rateLimit({
