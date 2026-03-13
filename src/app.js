@@ -46,14 +46,14 @@ app.use(
 // app.use("/api/", limiter);
 
 // Auth rate limit lebih ketat
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: {
-    success: false,
-    message: "Too many login attempts, please try again later.",
-  },
-});
+// const authLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 10,
+//   message: {
+//     success: false,
+//     message: "Too many login attempts, please try again later.",
+//   },
+// });
 
 // ================================
 // Body Parser
@@ -80,7 +80,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/admin", authenticate, authorizeAdmin, adminRoutes);
-app.use("/api/auth", authLimiter, authRoutes);
+// app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/menus", menuRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reports", reportRoutes);
