@@ -95,7 +95,7 @@ const updateProfile = async (
       throw { statusCode: 409, message: "Email sudah terdaftar" };
     data.email = email;
   }
-  if (password) {
+  if (password && password.trim() !== "") {
     if (password !== confirm_password)
       throw {
         statusCode: 400,
@@ -105,10 +105,10 @@ const updateProfile = async (
     const hashedPassword = await bcryptjs.hash(password, 12);
     data.password = hashedPassword;
   }
-  if (phone) {
+  if (phone && phone.trim() !== "") {
     data.phone = phone;
   }
-  if (address) {
+  if (address && address.trim() !== "") {
     data.address = address;
   }
 
