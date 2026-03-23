@@ -31,6 +31,10 @@ const getUsers = async (filters) => {
 
   const pagination = buildPagination(usersCount, page, limit);
 
+  for (const user of users) {
+    user.password = undefined;
+  }
+
   return {
     users,
     pagination,
@@ -46,6 +50,7 @@ const getUserById = async (id) => {
     throw { statusCode: 400, message: "User tidak ditemukan" };
   }
 
+  user.password = undefined;
   return user;
 };
 
