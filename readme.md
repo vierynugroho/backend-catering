@@ -8,5 +8,8 @@ stock order akan diperbarui jika pergantian tanggal sewa, atau pesanan baru, ata
 
 order bisa diperbarui terkait perubahan tanggal dan status hanya jika order belum diproses
 
-
 API Docs: https://documenter.getpostman.com/view/22814931/2sBXcGEzuN
+
+---
+
+Timezone: UTC, apapun yang akan disimpan dan dikembalikan ke FE akan berformat UTC
