@@ -140,6 +140,68 @@ const deleteOrder = async (req, res, next) => {
   }
 };
 
+const exportOrders = async (req, res, next) => {
+  try {
+    const {
+      page,
+      limit,
+      search,
+      shipping_status,
+      order_status,
+      delivery_method,
+    } = req.query;
+    const userId = req.user.id;
+    const isAdmin = req.isAdmin ?? false;
+    const { type } = req.params;
+    const filters = {
+      search,
+      shipping_status,
+      order_status,
+      delivery_method,
+      isAdmin,
+      userId,
+      page: Number(page) || null,
+      limit: Number(limit) || null,
+    };
+    const data = await orderService.exportOrders(filters, type);
+
+    const lowerType = type ? type.toLowerCase() : null;
+
+    if (lowerType === "csv") {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="orders_${Date.now()}.csv"`,
+      );
+      return res.send(data);
+    }
+
+    if (lowerType === "xlsx") {
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="orders_${Date.now()}.xlsx"`,
+      );
+      return res.send(data);
+    }
+
+    if (lowerType === "pdf") {
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="orders_${Date.now()}.pdf"`,
+      );
+      return res.send(data);
+    }
+
+    return sendSuccess(res, data, "Data order berhasil diekspor");
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createOrder,
   checkDateOrderStock,
@@ -147,4 +209,5 @@ export default {
   getOrderById,
   updateOrder,
   deleteOrder,
+  exportOrders,
 };

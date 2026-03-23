@@ -31,6 +31,15 @@ router
     validate.query([rangeDateSchema, orderQuerySchema]),
     controller.getOrders,
   );
+  
+router
+  .route("/export/:type")
+  .get(
+    authenticate,
+    authorizeCustomer,
+    validate.query([rangeDateSchema, orderQuerySchema]),
+    controller.exportOrders,
+  );
 
 router
   .route("/:id")

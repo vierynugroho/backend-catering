@@ -11,6 +11,7 @@ import {
 } from "../../utils/helpers.js";
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
+import exporter from "../../utils/exporter.js";
 
 export const calculateOrderItems = (items, shippingCost = 0, discount = 0) => {
   const totalPerItem = items.map((item) => {
@@ -202,7 +203,6 @@ const getOrders = async (filters) => {
     order_status,
     delivery_method,
   } = filters;
-  console.log({ filters });
   const orders = await prisma.order.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
@@ -591,6 +591,119 @@ const deleteOrder = async (id) => {
   return deletedOrder;
 };
 
+const exportOrders = async (filters, type) => {
+  const exportType = type.toLowerCase();
+  const allowedTypes = ["csv", "xlsx", "pdf"];
+
+  if (!allowedTypes.includes(exportType)) {
+    throw {
+      statusCode: 400,
+      message: `Tipe ekspor tidak valid. Tipe yang diperbolehkan: ${allowedTypes.join(
+        ", ",
+      )}`,
+    };
+  }
+
+  const {
+    userId,
+    isAdmin,
+    search,
+    shipping_status,
+    order_status,
+    delivery_method,
+  } = filters;
+  const orders = await prisma.order.findMany({
+    orderBy: [
+      { eventDate: "desc" }, // prioritas 1
+      { createdAt: "desc" }, // prioritas 2 (tie-breaker)
+    ],
+    where: {
+      userId: isAdmin ? undefined : userId,
+      orderStatus: order_status ?? undefined,
+      shipping: {
+        shippingStatus: shipping_status ?? undefined,
+        deliveryMethod: delivery_method ?? undefined,
+      },
+      OR: search
+        ? [
+            { user: { fullname: { contains: search, mode: "insensitive" } } },
+            { code: { contains: search, mode: "insensitive" } },
+            {
+              shipping: {
+                recipientName: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+                recipientPhone: search
+                  ? { contains: search, mode: "insensitive" }
+                  : undefined,
+              },
+            },
+          ]
+        : undefined,
+    },
+    include: {
+      user: true,
+      orderItems: {
+        include: {
+          menu: true,
+        },
+      },
+      shipping: true,
+    },
+  });
+
+  const mappedOrders = orders.map((order) => ({
+    id: order.id,
+    customer_name: order.customerName,
+    ordered_by: {
+      fullname: order.user ? order.user.fullname : null,
+      email: order.user ? order.user.email : null,
+    },
+    phone: order.shipping ? order.shipping.recipientPhone : null,
+    destination: order.shipping ? order.shipping.destination : null,
+    note: order.note,
+    code: order.code,
+    order_date: order.eventDate,
+    order_status: order.orderStatus,
+    shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
+    total_price: parseFloat(order.totalPrice),
+    discount: parseFloat(order.discount),
+    normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
+    final_price: parseFloat(order.totalPrice),
+    delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
+    delivered_at: order.shipping ? order.shipping.deliveredAt : null,
+    shipping_status: order.shipping
+      ? order.shipping.shippingStatus
+      : "pesanan_disiapkan",
+    items: order.orderItems.map((item) => ({
+      menu_id: item.menuId,
+      menu_name: item.menu.name,
+      menu_price: parseFloat(item.menu.price),
+      menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
+      quantity: parseInt(item.quantity),
+      subtotal: parseFloat(item.subtotal),
+    })),
+  }));
+
+  // export CSV
+  if (exportType === "csv") {
+    const csv = await exporter.exportToCSV(mappedOrders);
+    return csv;
+  }
+
+  // export XLSX
+  if (exportType === "xlsx") {
+    const { exportToXLSX } = await import("./order.export.js");
+    return exportToXLSX(mappedOrders);
+  }
+
+  // export PDF
+  if (exportType === "pdf") {
+    const data = await exporter.exportToPDF(mappedOrders);
+    return data;
+  }
+};
+
 export default {
   validateOrderStock,
   checkDateOrderStock,
@@ -599,4 +712,5 @@ export default {
   getOrderById,
   updateOrder,
   deleteOrder,
+  exportOrders,
 };

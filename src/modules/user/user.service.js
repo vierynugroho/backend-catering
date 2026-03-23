@@ -5,42 +5,28 @@ import bcryptjs from "bcryptjs";
 
 const getUsers = async (filters) => {
   const { page, limit, from, to, search } = filters;
+  const where = {
+    ...(search && {
+      OR: [
+        { fullname: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phone: { contains: formatPhoneNumber(search) } },
+      ],
+    }),
+    createdAt: {
+      gte: from ? new Date(from) : undefined,
+      lte: to ? new Date(to) : undefined,
+    },
+  };
+
   const users = await prisma.user.findMany({
     take: limit ?? undefined,
     skip: page && limit ? (page - 1) * limit : undefined,
-    where: {
-      OR: [
-        search
-          ? { fullname: { contains: search, mode: "insensitive" } }
-          : undefined,
-        search
-          ? { email: { contains: search, mode: "insensitive" } }
-          : undefined,
-        search ? { phone: { contains: formatPhoneNumber(search) } } : undefined,
-      ].filter(Boolean),
-      createdAt: {
-        gte: from ? new Date(from) : undefined,
-        lte: to ? new Date(to) : undefined,
-      },
-    },
+    where,
   });
 
   const usersCount = await prisma.user.count({
-    where: {
-      OR: [
-        search
-          ? { fullname: { contains: search, mode: "insensitive" } }
-          : undefined,
-        search
-          ? { email: { contains: search, mode: "insensitive" } }
-          : undefined,
-        search ? { phone: { contains: formatPhoneNumber(search) } } : undefined,
-      ].filter(Boolean),
-      createdAt: {
-        gte: from ? new Date(from) : undefined,
-        lte: to ? new Date(to) : undefined,
-      },
-    },
+    where,
   });
 
   const pagination = buildPagination(usersCount, page, limit);
