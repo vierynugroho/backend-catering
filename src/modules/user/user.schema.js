@@ -16,6 +16,7 @@ const createUserSchema = z.object({
 });
 
 const updateUserSchema = z.object({
+  fullname: z.string().min(2, "Fullname minimal 2 karakter").optional(),
   email: z.string().email("Email tidak valid").optional(),
   password: z.string().min(1, "Password wajib diisi").optional(),
   customer_type: z
