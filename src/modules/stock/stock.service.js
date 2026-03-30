@@ -70,6 +70,14 @@ const createOrderStock = async (data) => {
 const updateOrderStock = async (id, data) => {
   const { event_date, max_stock, current_stock } = data;
 
+  const existingOrderStock = await prisma.stockOrder.findUnique({
+    where: { id },
+  });
+
+  if (!existingOrderStock) {
+    throw { statusCode: 400, message: "Order stock tidak ditemukan" };
+  }
+
   const isExistingStockOrder = await prisma.stockOrder.findFirst({
     where: {
       eventDate: setDate(event_date),
@@ -78,10 +86,6 @@ const updateOrderStock = async (id, data) => {
       },
     },
   });
-
-  if (!isExistingStockOrder) {
-    throw { statusCode: 400, message: "Order stock tidak ditemukan" };
-  }
 
   if (isExistingStockOrder) {
     throw {
@@ -93,9 +97,9 @@ const updateOrderStock = async (id, data) => {
   const updatedOrderStock = await prisma.stockOrder.update({
     where: { id },
     data: {
-      eventDate: setDate(event_date),
-      maxStock: max_stock,
-      currentStock: current_stock,
+      eventDate: setDate(event_date) || existingOrderStock.eventDate,
+      maxStock: max_stock || existingOrderStock.maxStock,
+      currentStock: current_stock || existingOrderStock.currentStock,
     },
   });
 
