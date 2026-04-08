@@ -4,7 +4,7 @@ import { formatPhoneNumber } from "../../utils/helpers.js";
 import bcryptjs from "bcryptjs";
 
 const getUsers = async (filters) => {
-  const { page, limit, from, to, search } = filters;
+  const { page, limit, from, to, search, customer_type } = filters;
   const where = {
     ...(search && {
       OR: [
@@ -13,6 +13,7 @@ const getUsers = async (filters) => {
         { phone: { contains: formatPhoneNumber(search) } },
       ],
     }),
+    customer_type: customer_type ? customer_type : undefined,
     createdAt: {
       gte: from ? new Date(from) : undefined,
       lte: to ? new Date(to) : undefined,

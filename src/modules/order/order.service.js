@@ -12,6 +12,7 @@ import {
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
 import exporter from "../../utils/exporter.js";
+import { CustomerType } from "@prisma/client";
 
 export const calculateOrderItems = (items, shippingCost = 0, discount = 0) => {
   const totalPerItem = items.map((item) => {
@@ -188,6 +189,26 @@ const createOrder = async ({
         updatedAt: setDateTime(new Date()),
       },
     });
+
+    // user order, if >= 5, update to reguler_customer
+    const countUserOrder = await prisma.order.count({
+      where: {
+        userId: userId,
+      },
+    });
+
+    if (countUserOrder >= 5) {
+      await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          customerType: CustomerType.reguler_customer,
+          updatedAt: setDateTime(new Date()),
+        },
+      });
+    }
+
     return newOrder;
   });
 };
