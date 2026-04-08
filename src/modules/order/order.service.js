@@ -716,7 +716,7 @@ const exportOrders = async (filters, type) => {
       : "Periode: Semua Transaksi";
 
   const meta = {
-    brand: "Dhewi Catering",
+    brand: "Catering Dhewi",
     title: "Laporan Transaksi",
     info: [periodInfo, "Tipe Transaksi: Order Pelanggan"],
     sheetName: "Laporan Transaksi",
