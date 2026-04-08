@@ -3,6 +3,7 @@ import menuService from "../menu/menu.service.js";
 import prisma from "../../config/db/prisma.js";
 import {
   formatDateResponse,
+  formatDateWIB,
   formatPhoneNumber,
   setDateTime,
   generateOrderCode,
@@ -295,7 +296,7 @@ const getOrders = async (filters) => {
 
   const mappedOrders = orders.map((order) => ({
     id: order.id,
-    customer_name: order.customerName,
+    customer_name: order.shipping.recipientName,
     ordered_by: {
       fullname: order.user ? order.user.fullname : null,
       email: order.user ? order.user.email : null,
@@ -359,7 +360,7 @@ const getOrderById = async (id, userId, isAdmin) => {
 
   const mappedOrder = {
     id: order.id,
-    customer_name: order.customerName,
+    customer_name: order.shipping ? order.shipping.recipientName : null,
     ordered_by: {
       fullname: order.user ? order.user.fullname : null,
       email: order.user ? order.user.email : null,
@@ -632,15 +633,20 @@ const exportOrders = async (filters, type) => {
     shipping_status,
     order_status,
     delivery_method,
+    from,
+    to,
   } = filters;
+
+  const eventDateFilter = {};
+  if (from) eventDateFilter.gte = setDateTime(from);
+  if (to) eventDateFilter.lte = setDateTime(to);
+
   const orders = await prisma.order.findMany({
-    orderBy: [
-      { eventDate: "desc" }, // prioritas 1
-      { createdAt: "desc" }, // prioritas 2 (tie-breaker)
-    ],
+    orderBy: [{ eventDate: "asc" }, { createdAt: "asc" }],
     where: {
       userId: isAdmin ? undefined : userId,
       orderStatus: order_status ?? undefined,
+      eventDate: from || to ? eventDateFilter : undefined,
       shipping: {
         shippingStatus: shipping_status ?? undefined,
         deliveryMethod: delivery_method ?? undefined,
@@ -673,56 +679,56 @@ const exportOrders = async (filters, type) => {
     },
   });
 
-  const mappedOrders = orders.map((order) => ({
-    id: order.id,
-    customer_name: order.customerName,
-    ordered_by: {
-      fullname: order.user ? order.user.fullname : null,
-      email: order.user ? order.user.email : null,
+  const formatRupiah = (value) =>
+    `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+
+  const rows = orders.map((order, idx) => {
+    const items = order.orderItems || [];
+    const menuText = items
+      .map(
+        (item) =>
+          `${item.menu.name} x${item.quantity} (${formatRupiah(item.subtotal)})`,
+      )
+      .join("\n");
+
+    return {
+      No: idx + 1,
+      "Kode Order": order.code || "-",
+      Pelanggan: order.shipping?.recipientName || "-",
+      Telepon: order.shipping?.recipientPhone || "-",
+      Menu: menuText || "-",
+      Pengiriman: order.shipping?.deliveryMethod || "-",
+      Status: order.orderStatus || "-",
+      "Total Harga": formatRupiah(order.totalPrice),
+      Tanggal: formatDateWIB(order.eventDate, true),
+    };
+  });
+
+  // ── Total pendapatan (kecuali pesanan dibatalkan) ──
+  const totalRevenue = orders.reduce((sum, o) => {
+    if (o.orderStatus === "pesanan_dibatalkan") return sum;
+    return sum + Number(o.totalPrice || 0);
+  }, 0);
+
+  const periodInfo =
+    from || to
+      ? `Periode: ${from ? formatDateResponse(from) : "-"} s/d ${to ? formatDateResponse(to) : "-"}`
+      : "Periode: Semua Transaksi";
+
+  const meta = {
+    brand: "Dhewi Catering",
+    title: "Laporan Transaksi",
+    info: [periodInfo, "Tipe Transaksi: Order Pelanggan"],
+    sheetName: "Laporan Transaksi",
+    footer: {
+      label: "Total Pendapatan:",
+      value: formatRupiah(totalRevenue),
     },
-    phone: order.shipping ? order.shipping.recipientPhone : null,
-    destination: order.shipping ? order.shipping.destination : null,
-    note: order.note,
-    code: order.code,
-    order_date: order.eventDate,
-    order_status: order.orderStatus,
-    shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
-    total_price: parseFloat(order.totalPrice),
-    discount: parseFloat(order.discount),
-    normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
-    final_price: parseFloat(order.totalPrice),
-    delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
-    delivered_at: order.shipping ? order.shipping.deliveredAt : null,
-    shipping_status: order.shipping
-      ? order.shipping.shippingStatus
-      : "pesanan_disiapkan",
-    items: order.orderItems.map((item) => ({
-      menu_id: item.menuId,
-      menu_name: item.menu.name,
-      menu_price: parseFloat(item.menu.price),
-      menu_images: item.menu.images ? JSON.parse(item.menu.images) : [],
-      quantity: parseInt(item.quantity),
-      subtotal: parseFloat(item.subtotal),
-    })),
-  }));
+  };
 
-  // export CSV
-  if (exportType === "csv") {
-    const csv = await exporter.exportToCSV(mappedOrders);
-    return csv;
-  }
-
-  // export XLSX
-  if (exportType === "xlsx") {
-    const { exportToXLSX } = await import("./order.export.js");
-    return exportToXLSX(mappedOrders);
-  }
-
-  // export PDF
-  if (exportType === "pdf") {
-    const data = await exporter.exportToPDF(mappedOrders);
-    return data;
-  }
+  if (exportType === "csv") return exporter.exportToCSV(rows, meta);
+  if (exportType === "xlsx") return exporter.exportToXLSX(rows, meta);
+  if (exportType === "pdf") return exporter.exportToPDF(rows, meta);
 };
 
 export default {

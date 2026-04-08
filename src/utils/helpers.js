@@ -1,4 +1,20 @@
 import moment from "moment";
+import "moment-timezone";
+
+const WIB_TZ = "Asia/Jakarta";
+
+/**
+ * Format tanggal ke timezone WIB (Asia/Jakarta).
+ * Data DB diasumsikan UTC.
+ */
+export const formatDateWIB = (date, show_time = true) => {
+  if (!date) return "-";
+  const m = moment.tz(date, WIB_TZ);
+  if (!m.isValid()) return "-";
+  return show_time
+    ? m.format("DD-MM-YYYY HH:mm")
+    : m.format("DD-MM-YYYY");
+};
 
 /*
  * format phone number to +62

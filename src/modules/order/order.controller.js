@@ -149,15 +149,19 @@ const exportOrders = async (req, res, next) => {
       shipping_status,
       order_status,
       delivery_method,
+      from,
+      to,
     } = req.query;
-    const userId = req.user.id;
     const isAdmin = req.isAdmin ?? false;
+    const userId = isAdmin ? req.user?.id : undefined;
     const { type } = req.params;
     const filters = {
       search,
       shipping_status,
       order_status,
       delivery_method,
+      from,
+      to,
       isAdmin,
       userId,
       page: Number(page) || null,
@@ -189,6 +193,7 @@ const exportOrders = async (req, res, next) => {
     }
 
     if (lowerType === "pdf") {
+      res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
         `attachment; filename="orders_${Date.now()}.pdf"`,
