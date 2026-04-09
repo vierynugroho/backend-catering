@@ -207,6 +207,47 @@ const exportOrders = async (req, res, next) => {
   }
 };
 
+const validateInvoiceDownload = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const isAdmin = req.isAdmin ?? false;
+
+    const result = await orderService.validateInvoiceDownload(
+      id,
+      userId,
+      isAdmin,
+    );
+
+    return sendSuccess(res, result, "Validasi invoice berhasil");
+  } catch (err) {
+    next(err);
+  }
+};
+
+const downloadInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const isAdmin = req.isAdmin ?? false;
+
+    const { buffer, code } = await orderService.getInvoicePDF(
+      id,
+      userId,
+      isAdmin,
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="invoice_${code}_${Date.now()}.pdf"`,
+    );
+    return res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createOrder,
   checkDateOrderStock,
@@ -215,4 +256,6 @@ export default {
   updateOrder,
   deleteOrder,
   exportOrders,
+  validateInvoiceDownload,
+  downloadInvoice,
 };

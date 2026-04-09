@@ -50,7 +50,7 @@ const updateOrderSchema = z.object({
       }),
     },
   ),
-  discount: z.coerce.number().min(0).optional(),
+  discount: z.coerce.number().min(0).max(9999999999).optional(),
   items: z
     .array(
       z.object({
@@ -59,7 +59,7 @@ const updateOrderSchema = z.object({
       }),
     )
     .min(1, "Minimal 1 item"),
-  shipping_cost: z.number().min(0).optional(),
+  shipping_cost: z.coerce.number().min(0).max(9999999999).optional(),
   shipping_status: z
     .enum(
       [

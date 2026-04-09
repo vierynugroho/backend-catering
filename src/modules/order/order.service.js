@@ -14,6 +14,7 @@ import { buildPagination } from "../../common/response.js";
 import moment from "moment";
 import exporter from "../../utils/exporter.js";
 import { CustomerType } from "@prisma/client";
+import { generateInvoicePDF } from "../../lib/invoice-pdf.js";
 
 export const calculateOrderItems = (items, shippingCost = 0, discount = 0) => {
   const totalPerItem = items.map((item) => {
@@ -731,6 +732,42 @@ const exportOrders = async (filters, type) => {
   if (exportType === "pdf") return exporter.exportToPDF(rows, meta);
 };
 
+const validateInvoiceDownload = async (id, userId, isAdmin) => {
+  const order = await getOrderById(id, userId, isAdmin);
+
+  const isValid =
+    order.order_status !== "pesanan_dibatalkan" &&
+    order.shipping_status !== "pesanan_dibatalkan";
+
+  return {
+    is_valid_to_download: isValid,
+  };
+};
+
+const getInvoicePDF = async (id, userId, isAdmin) => {
+  const order = await getOrderById(id, userId, isAdmin);
+
+  const isValid =
+    order.order_status !== "pesanan_dibatalkan" &&
+    order.shipping_status !== "pesanan_dibatalkan";
+
+  if (!isValid) {
+    throw {
+      statusCode: 400,
+      message:
+        "Invoice tidak dapat diunduh karena pesanan telah dibatalkan",
+    };
+  }
+
+  const invoiceData = {
+    ...order,
+    order_date_formatted: formatDateWIB(order.order_date, false),
+  };
+
+  const pdfBuffer = await generateInvoicePDF(invoiceData);
+  return { buffer: pdfBuffer, code: order.code };
+};
+
 export default {
   validateOrderStock,
   checkDateOrderStock,
@@ -740,4 +777,6 @@ export default {
   updateOrder,
   deleteOrder,
   exportOrders,
+  validateInvoiceDownload,
+  getInvoicePDF,
 };

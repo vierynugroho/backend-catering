@@ -39,6 +39,14 @@ router.route("/export/:type").get(
 );
 
 router
+  .route("/:id/invoice/validate")
+  .get(authenticate, controller.validateInvoiceDownload);
+
+router
+  .route("/:id/invoice")
+  .get(authenticate, controller.downloadInvoice);
+
+router
   .route("/:id")
   .get(authenticate, authorizeCustomer, controller.getOrderById);
 

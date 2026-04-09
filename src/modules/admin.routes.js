@@ -74,6 +74,12 @@ router
     orderController.getOrders,
   );
 router
+  .route("/orders/:id/invoice/validate")
+  .get(authenticate, authorizeAdmin, orderController.validateInvoiceDownload);
+router
+  .route("/orders/:id/invoice")
+  .get(authenticate, authorizeAdmin, orderController.downloadInvoice);
+router
   .route("/orders/:id")
   .get(authenticate, authorizeAdmin, orderController.getOrderById)
   .put(
