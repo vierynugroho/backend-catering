@@ -5,6 +5,9 @@ import bcryptjs from "bcryptjs";
 
 const getUsers = async (filters) => {
   const { page, limit, from, to, search, customer_type } = filters;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
   const where = {
     ...(search && {
       OR: [
@@ -21,8 +24,8 @@ const getUsers = async (filters) => {
   };
 
   const users = await prisma.user.findMany({
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
+    take: parsedLimit,
+    skip: (parsedPage - 1) * parsedLimit,
     where,
   });
 
@@ -30,7 +33,7 @@ const getUsers = async (filters) => {
     where,
   });
 
-  const pagination = buildPagination(usersCount, page, limit);
+  const pagination = buildPagination(usersCount, parsedPage, parsedLimit);
 
   for (const user of users) {
     user.password = undefined;

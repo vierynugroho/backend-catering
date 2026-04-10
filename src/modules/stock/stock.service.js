@@ -4,9 +4,12 @@ import { setDate } from "../../utils/helpers.js";
 
 const getOrderStocks = async (filters) => {
   const { page, limit, search } = filters;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
   const orderStockWithMenu = await prisma.stockOrder.findMany({
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
+    take: parsedLimit,
+    skip: (parsedPage - 1) * parsedLimit,
     where: {
       eventDate: search ? setDate(search) : undefined,
     },
@@ -20,7 +23,7 @@ const getOrderStocks = async (filters) => {
     },
   });
 
-  const pagination = buildPagination(orderStocksCount, page, limit);
+  const pagination = buildPagination(orderStocksCount, parsedPage, parsedLimit);
 
   return {
     orderStockWithMenu,

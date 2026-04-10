@@ -45,6 +45,8 @@ const updateCategory = async (id, { name, slug }) => {
 
 const getAllCategories = async (filters) => {
   const { from, to, name, page, limit } = filters;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
   const categories = await prisma.category.findMany({
     where: {
       createdAt: {
@@ -56,8 +58,8 @@ const getAllCategories = async (filters) => {
     orderBy: {
       name: "asc",
     },
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
+    take: parsedLimit,
+    skip: (parsedPage - 1) * parsedLimit,
   });
 
   const totalCount = await prisma.category.count({
@@ -72,7 +74,7 @@ const getAllCategories = async (filters) => {
 
   return {
     categories,
-    pagination: buildPagination(totalCount, page, limit),
+    pagination: buildPagination(totalCount, parsedPage, parsedLimit),
   };
 };
 
@@ -186,10 +188,12 @@ const updateMenu = async (
       description,
     },
   });
-};;
+};
 
 const getMenus = async (filters) => {
   const { isAdmin, page, limit, from, to, name } = filters;
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
   const menuWithCategory = await prisma.menu.findMany({
     orderBy: [{ price: "asc" }, { name: "asc" }],
     where: {
@@ -203,8 +207,8 @@ const getMenus = async (filters) => {
     include: {
       category: true,
     },
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
+    take: parsedLimit,
+    skip: (parsedPage - 1) * parsedLimit,
   });
 
   const menuCount = await prisma.menu.count({
@@ -237,7 +241,7 @@ const getMenus = async (filters) => {
 
   return {
     menus: mappedData,
-    pagination: buildPagination(menuCount, page, limit),
+    pagination: buildPagination(menuCount, parsedPage, parsedLimit),
   };
 };
 

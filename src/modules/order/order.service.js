@@ -261,9 +261,11 @@ const getOrders = async (filters) => {
     order_status,
     delivery_method,
   } = filters;
+
+  const parsedPage = parseInt(page) || 1;
+  const parsedLimit = parseInt(limit) || 10;
+
   const orders = await prisma.order.findMany({
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
     orderBy: [
       { eventDate: "desc" }, // prioritas 1
       { createdAt: "desc" }, // prioritas 2 (tie-breaker)
@@ -301,6 +303,8 @@ const getOrders = async (filters) => {
       },
       shipping: true,
     },
+    take: parsedLimit,
+    skip: (parsedPage - 1) * parsedLimit,
   });
 
   const totalOrders = await prisma.order.count({
@@ -328,8 +332,6 @@ const getOrders = async (filters) => {
           ]
         : undefined,
     },
-    take: limit ?? undefined,
-    skip: page && limit ? (page - 1) * limit : undefined,
   });
 
   const mappedOrders = orders.map((order) => ({
@@ -365,7 +367,7 @@ const getOrders = async (filters) => {
     })),
   }));
 
-  const pagination = buildPagination(totalOrders, page, limit);
+  const pagination = buildPagination(totalOrders, parsedPage, parsedLimit);
   return {
     orders: mappedOrders,
     pagination,
