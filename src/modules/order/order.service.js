@@ -265,6 +265,13 @@ const getOrders = async (filters) => {
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
 
+  // console.log("Filters getOrders:", {
+  //   parsedPage,
+  //   parsedLimit,
+  //   skip: (parsedPage - 1) * parsedLimit,
+  //   page,
+  //   limit,
+  // });
   const orders = await prisma.order.findMany({
     orderBy: [
       { eventDate: "desc" }, // prioritas 1

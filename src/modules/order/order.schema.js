@@ -102,6 +102,8 @@ const checkDateOrderStockSchema = z.object({
 });
 
 const orderQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional(),
   order_status: z
     .enum(
       [
