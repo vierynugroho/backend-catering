@@ -22,7 +22,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 5 * 1024 * 1024, // 5 MB
     files: 10,
   },
 });
@@ -89,7 +89,7 @@ export const uploadMultiple = upload.array("images", 10);
 export const handleMulterError = (err, _req, res, next) => {
   if (err instanceof multer.MulterError) {
     const messages = {
-      LIMIT_FILE_SIZE: "Ukuran file melebihi batas 10 MB.",
+      LIMIT_FILE_SIZE: "Ukuran file melebihi batas 5 MB.",
       LIMIT_FILE_COUNT: "Jumlah file melebihi batas 10 foto.",
       LIMIT_UNEXPECTED_FILE:
         'Field file tidak dikenali. Gunakan field "images".',
