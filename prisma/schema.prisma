@@ -74,8 +74,8 @@ model Menu {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  category    Category     @relation(fields: [categoryId], references: [id])
-  orderItems  OrderItem[]
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
 
   @@map("menus")
 }
@@ -91,7 +91,6 @@ model StockOrder {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-
   @@unique([eventDate])
   @@map("stock_orders")
 }
@@ -100,16 +99,16 @@ model StockOrder {
 // ORDER
 // ================================
 model Order {
-  id             String         @id @default(cuid())
-  userId         String         @map("user_id")
-  eventDate      DateTime       @map("event_date")
-  note           String?
-  code           String         @unique @default(cuid())
-  orderStatus    OrderStatus    @default(pesanan_diterima) @map("order_status")
-  discount       Decimal        @default(0) @map("discount") @db.Decimal(10, 2)
-  totalPrice     Decimal        @map("total_price") @db.Decimal(10, 2)
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  eventDate   DateTime    @map("event_date")
+  note        String?
+  code        String      @unique @default(cuid())
+  orderStatus OrderStatus @default(pesanan_diterima) @map("order_status")
+  discount    Decimal     @default(0) @map("discount") @db.Decimal(10, 2)
+  totalPrice  Decimal     @map("total_price") @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   user       User        @relation(fields: [userId], references: [id])
   orderItems OrderItem[]
@@ -152,7 +151,7 @@ model Shipping {
   orderId        String         @unique @map("order_id")
   shippingStatus ShippingStatus @default(pesanan_disiapkan) @map("shipping_status")
   trackingNote   String?        @map("tracking_note")
-  destination    String         @map("destination")
+  destination    String?        @map("destination")
   recipientName  String         @map("recipient_name")
   recipientPhone String         @map("recipient_phone")
   deliveryMethod DeliveryMethod @default(dikirim) @map("delivery_method")

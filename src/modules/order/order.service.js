@@ -119,7 +119,7 @@ const createOrder = async ({
     user_id: userId,
     customer_name: customerName,
     phone: formatPhoneNumber(phone),
-    destination,
+    destination: destination || null,
     order_date: orderDate,
     note,
     code: generateOrderCode(),
@@ -186,7 +186,7 @@ const createOrder = async ({
     await prisma.shipping.create({
       data: {
         orderId: newOrder.id,
-        destination: payload.destination,
+        destination: payload.destination || null,
         recipientName: payload.customer_name,
         recipientPhone: payload.phone,
         deliveryMethod: payload.delivery_method,

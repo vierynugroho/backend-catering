@@ -3,7 +3,7 @@ import { z } from "zod";
 const createOrderSchema = z.object({
   customer_name: z.string().min(2),
   phone: z.string().min(9, "No. telp tidak valid"),
-  destination: z.string().min(5),
+  destination: z.string().min(5).optional(),
   order_date: z
     .string()
     .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
@@ -26,7 +26,7 @@ const createOrderSchema = z.object({
 const updateOrderSchema = z.object({
   customer_name: z.string().min(2),
   phone: z.string().min(9, "No. telp tidak valid"),
-  destination: z.string().min(5),
+  destination: z.string().min(5).optional(),
   order_date: z
     .string()
     .refine((d) => !isNaN(Date.parse(d)), { message: "Tanggal tidak valid" }),
