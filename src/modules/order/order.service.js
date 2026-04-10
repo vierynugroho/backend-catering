@@ -15,6 +15,10 @@ import moment from "moment";
 import exporter from "../../utils/exporter.js";
 import { CustomerType } from "@prisma/client";
 import { generateInvoicePDF } from "../../lib/invoice-pdf.js";
+import {
+  sendWhatsAppNotification,
+  buildOrderNotificationMessage,
+} from "../../lib/fonnte.js";
 
 export const calculateOrderItems = (items, shippingCost = 0, discount = 0) => {
   const totalPerItem = items.map((item) => {
@@ -209,6 +213,37 @@ const createOrder = async ({
           updatedAt: setDateTime(new Date()),
         },
       });
+    }
+
+    // Kirim notifikasi WhatsApp ke admin
+    const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER;
+    if (adminPhone) {
+      const orderItems = [];
+      for (const item of payload.items) {
+        const menu = await prisma.menu.findUnique({ where: { id: item.menu_id } });
+        const itemTotal = totalPerItem.find((i) => i.menu_id === item.menu_id);
+        orderItems.push({
+          name: menu?.name || item.menu_id,
+          quantity: item.quantity,
+          subtotal: itemTotal?.subtotal || 0,
+        });
+      }
+
+      const message = buildOrderNotificationMessage({
+        code: payload.code,
+        customerName: payload.customer_name,
+        phone: payload.phone,
+        destination: payload.destination,
+        orderDate: formatDateWIB(payload.order_date, false),
+        deliveryMethod: payload.delivery_method,
+        items: orderItems,
+        totalPrice,
+        note: payload.note,
+      });
+
+      sendWhatsAppNotification({ to: adminPhone, message }).catch((err) =>
+        console.error("[Order] Gagal kirim notifikasi WA:", err.message),
+      );
     }
 
     return newOrder;
