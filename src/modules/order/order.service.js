@@ -328,6 +328,8 @@ const getOrders = async (filters) => {
           ]
         : undefined,
     },
+    take: limit ?? undefined,
+    skip: page && limit ? (page - 1) * limit : undefined,
   });
 
   const mappedOrders = orders.map((order) => ({
