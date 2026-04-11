@@ -621,12 +621,12 @@ const deleteOrder = async (id) => {
   const today = getToday().start;
   // jika order hari ini atau belum lewat atau merupakan order baru, kembalikan stock (increment 1)
   if (
-    existingOrder.eventDate >= today ||
+    setDate(existingOrder.order_date) >= today ||
     existingOrder.order_status === "pesanan_diterima"
   ) {
     await prisma.stockOrder.updateMany({
       where: {
-        eventDate: setDate(existingOrder.eventDate),
+        eventDate: setDate(existingOrder.order_date),
       },
       data: {
         currentStock: {
