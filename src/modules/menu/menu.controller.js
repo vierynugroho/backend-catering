@@ -67,7 +67,7 @@ const deleteCategory = async (req, res, next) => {
 
 const getMenus = async (req, res, next) => {
   try {
-    const { page, limit, name, from, to } = req.query;
+    const { page, limit, name, from, to, category_id } = req.query;
     const filters = {
       isAdmin: req.isAdmin ? true : false,
       page: Number(page) || null,
@@ -75,6 +75,7 @@ const getMenus = async (req, res, next) => {
       name,
       from,
       to,
+      category_id,
     };
     const { menus, pagination } = await menuService.getMenus(filters);
     return sendWithPagination(

@@ -198,6 +198,7 @@ const getMenus = async (filters) => {
     orderBy: [{ price: "asc" }, { name: "asc" }],
     where: {
       isActive: isAdmin ? undefined : true,
+      categoryId: filters.category_id || undefined,
       createdAt: {
         gte: from ? new Date(from) : undefined,
         lte: to ? new Date(to) : undefined,
