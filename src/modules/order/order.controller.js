@@ -210,14 +210,8 @@ const exportOrders = async (req, res, next) => {
 const validateInvoiceDownload = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const isAdmin = req.isAdmin ?? false;
 
-    const result = await orderService.validateInvoiceDownload(
-      id,
-      userId,
-      isAdmin,
-    );
+    const result = await orderService.validateInvoiceDownload(id);
 
     return sendSuccess(res, result, "Validasi invoice berhasil");
   } catch (err) {
@@ -228,14 +222,8 @@ const validateInvoiceDownload = async (req, res, next) => {
 const downloadInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const isAdmin = req.isAdmin ?? false;
 
-    const { buffer, code } = await orderService.getInvoicePDF(
-      id,
-      userId,
-      isAdmin,
-    );
+    const { buffer, code } = await orderService.getInvoicePDF(id);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

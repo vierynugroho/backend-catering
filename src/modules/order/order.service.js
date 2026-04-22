@@ -381,11 +381,10 @@ const getOrders = async (filters) => {
   };
 };
 
-const getOrderById = async (id, userId, isAdmin) => {
+const getOrderById = async (id) => {
   const order = await prisma.order.findFirst({
     where: {
       id: id,
-      userId: isAdmin ? undefined : userId,
     },
     include: {
       user: true,
@@ -457,7 +456,7 @@ const updateOrder = async (
     discount,
   },
 ) => {
-  const existingOrder = await getOrderById(id, userId, true);
+  const existingOrder = await getOrderById(id);
 
   await validateOrderStock(items, orderDate, true);
 
@@ -777,8 +776,8 @@ const exportOrders = async (filters, type) => {
   if (exportType === "pdf") return exporter.exportToPDF(rows, meta);
 };
 
-const validateInvoiceDownload = async (id, userId, isAdmin) => {
-  const order = await getOrderById(id, userId, isAdmin);
+const validateInvoiceDownload = async (id) => {
+  const order = await getOrderById(id);
 
   const isValid =
     order.order_status !== "pesanan_dibatalkan" &&
@@ -789,8 +788,8 @@ const validateInvoiceDownload = async (id, userId, isAdmin) => {
   };
 };
 
-const getInvoicePDF = async (id, userId, isAdmin) => {
-  const order = await getOrderById(id, userId, isAdmin);
+const getInvoicePDF = async (id) => {
+  const order = await getOrderById(id);
 
   const isValid =
     order.order_status !== "pesanan_dibatalkan" &&
@@ -799,8 +798,7 @@ const getInvoicePDF = async (id, userId, isAdmin) => {
   if (!isValid) {
     throw {
       statusCode: 400,
-      message:
-        "Invoice tidak dapat diunduh karena pesanan telah dibatalkan",
+      message: "Invoice tidak dapat diunduh karena pesanan telah dibatalkan",
     };
   }
 
