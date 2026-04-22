@@ -563,7 +563,6 @@ const updateOrder = async (
       data: {
         eventDate: setDateTime(payload.order_date),
         note: payload.note,
-        userId: payload.user_id,
         code: payload.code,
         totalPrice,
         discount: calculatedDiscount,
