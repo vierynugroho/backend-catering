@@ -85,8 +85,11 @@ const updateUser = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const forceDelete = ["true", "1"].includes(
+      String(req.query.force_delete).toLowerCase(),
+    );
 
-    await userService.deleteUser(String(id));
+    await userService.deleteUser(String(id), forceDelete);
     return sendSuccess(res, null, "User berhasil dihapus", 200);
   } catch (err) {
     next(err);

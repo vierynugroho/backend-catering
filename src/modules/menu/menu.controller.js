@@ -54,7 +54,10 @@ const getAllCategories = async (req, res, next) => {
 const deleteCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await menuService.deleteCategory(String(id));
+    const forceDelete = ["true", "1"].includes(
+      String(req.query.force_delete).toLowerCase(),
+    );
+    await menuService.deleteCategory(String(id), forceDelete);
     return sendSuccess(res, null, "Kategori berhasil dihapus");
   } catch (error) {
     next(error);
@@ -172,7 +175,10 @@ const updateMenu = async (req, res, next) => {
 const deleteMenu = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await menuService.deleteMenu(String(id));
+    const forceDelete = ["true", "1"].includes(
+      String(req.query.force_delete).toLowerCase(),
+    );
+    await menuService.deleteMenu(String(id), forceDelete);
     return sendSuccess(res, null, "Menu berhasil dihapus");
   } catch (error) {
     next(error);

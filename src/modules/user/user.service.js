@@ -141,12 +141,39 @@ const updateUser = async (id, data) => {
   return updatedUser;
 };
 
-const deleteUser = async (id) => {
-  await prisma.user.update({
+const deleteUser = async (id, forceDelete = false) => {
+  const existingUser = await prisma.user.findUnique({
     where: { id },
-    data: {
-      isActive: false,
-    },
+  });
+
+  if (!existingUser) {
+    throw { statusCode: 404, message: "User tidak ditemukan" };
+  }
+
+  if (!forceDelete) {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const orders = await tx.order.findMany({
+      where: { userId: id },
+      select: { id: true },
+    });
+    const orderIds = orders.map((o) => o.id);
+
+    if (orderIds.length > 0) {
+      await tx.shipping.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.order.deleteMany({ where: { id: { in: orderIds } } });
+    }
+
+    await tx.user.delete({ where: { id } });
   });
 };
 

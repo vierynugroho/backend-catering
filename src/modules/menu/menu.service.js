@@ -78,28 +78,53 @@ const getAllCategories = async (filters) => {
   };
 };
 
-const deleteCategory = async (id) => {
-  await prisma.$transaction(async (prisma) => {
-    const usedOnMenu = await prisma.menu.findMany({
-      where: {
-        categoryId: id,
-      },
-    });
-
-    if (usedOnMenu.length > 0) {
-      const updateMenuToUncategorized = usedOnMenu.map(async (menu) => {
-        return await prisma.menu.update({
-          where: { id: menu.id },
-          data: { categoryId: null },
-        });
+const deleteCategory = async (id, forceDelete = false) => {
+  if (!forceDelete) {
+    await prisma.$transaction(async (prisma) => {
+      const usedOnMenu = await prisma.menu.findMany({
+        where: {
+          categoryId: id,
+        },
       });
 
-      await Promise.all(updateMenuToUncategorized);
+      if (usedOnMenu.length > 0) {
+        const updateMenuToUncategorized = usedOnMenu.map(async (menu) => {
+          return await prisma.menu.update({
+            where: { id: menu.id },
+            data: { categoryId: null },
+          });
+        });
+
+        await Promise.all(updateMenuToUncategorized);
+      }
+
+      return await prisma.category.delete({
+        where: { id },
+      });
+    });
+    return;
+  }
+
+  const menus = await prisma.menu.findMany({
+    where: { categoryId: id },
+  });
+
+  const imageDeletions = menus.flatMap((menu) => {
+    if (!menu.images) return [];
+    const parsed = JSON.parse(menu.images);
+    return parsed.map((img) => deleteFromImageKit(img.fileId));
+  });
+  await Promise.allSettled(imageDeletions);
+
+  await prisma.$transaction(async (tx) => {
+    const menuIds = menus.map((m) => m.id);
+
+    if (menuIds.length > 0) {
+      await tx.orderItem.deleteMany({ where: { menuId: { in: menuIds } } });
+      await tx.menu.deleteMany({ where: { id: { in: menuIds } } });
     }
 
-    return await prisma.category.delete({
-      where: { id },
-    });
+    await tx.category.delete({ where: { id } });
   });
 };
 
@@ -246,21 +271,32 @@ const getMenus = async (filters) => {
   };
 };
 
-const deleteMenu = async (id) => {
+const deleteMenu = async (id, forceDelete = false) => {
   const menu = await prisma.menu.findUnique({
     where: { id },
   });
 
   if (!menu) throw { statusCode: 404, message: "Menu tidak ditemukan" };
 
-  const updateToNonActive = await prisma.menu.update({
-    where: { id },
-    data: {
-      isActive: false,
-    },
-  });
+  if (!forceDelete) {
+    return await prisma.menu.update({
+      where: { id },
+      data: {
+        isActive: false,
+      },
+    });
+  }
 
-  return updateToNonActive;
+  if (menu.images) {
+    const images = JSON.parse(menu.images);
+    const deletePromises = images.map((img) => deleteFromImageKit(img.fileId));
+    await Promise.allSettled(deletePromises);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({ where: { menuId: id } });
+    await tx.menu.delete({ where: { id } });
+  });
 };
 
 const getMenuById = async (id, isAdmin = false) => {
