@@ -39,6 +39,7 @@ const searchUserSchema = z.object({
   limit: z.coerce.number().optional(),
   search: z.string().optional(),
   customer_type: z.enum(["reguler_customer", "new_customer"]).optional(),
+  type: z.enum(["customer", "user"]).optional(),
 });
 
 export { createUserSchema, updateUserSchema, searchUserSchema };

@@ -7,11 +7,13 @@ import {
 
 const getUsers = async (req, res, next) => {
   try {
-    const { page, limit, from, to, search } = req.query;
+    const { page, limit, from, to, search, customer_type, type } = req.query;
     const filters = {
       from,
       to,
       search,
+      customer_type,
+      type,
       page: Number(page) || null,
       limit: Number(limit) || null,
     };

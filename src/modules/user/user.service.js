@@ -4,7 +4,15 @@ import { formatPhoneNumber } from "../../utils/helpers.js";
 import bcryptjs from "bcryptjs";
 
 const getUsers = async (filters) => {
-  const { page, limit, from, to, search, customer_type } = filters;
+  const {
+    page,
+    limit,
+    from,
+    to,
+    search,
+    customer_type,
+    type = "user",
+  } = filters;
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
 
@@ -21,6 +29,13 @@ const getUsers = async (filters) => {
       gte: from ? new Date(from) : undefined,
       lte: to ? new Date(to) : undefined,
     },
+    // jika type customer, ambil user yang punya order saja
+    ...(type === "customer" && {
+      orders: {
+        some: {},
+      },
+      isActive: true,
+    }),
   };
 
   const users = await prisma.user.findMany({
