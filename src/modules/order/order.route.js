@@ -51,5 +51,8 @@ router
   .get(authenticate, authorizeCustomer, controller.getOrderById);
 
 router.route("/:id/confirm").post(authenticate, controller.confirmOrder);
+router
+  .route("/:id/cancel")
+  .post(authenticate, authorizeCustomer, controller.customerCancelOrder);
 
 export default router;

@@ -248,6 +248,19 @@ const confirmOrder = async (req, res, next) => {
   }
 };
 
+const customerCancelOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const result = await orderService.customerCancelOrder(id, userId);
+
+    return sendSuccess(res, result, "Order berhasil dibatalkan");
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createOrder,
   checkDateOrderStock,
@@ -259,4 +272,5 @@ export default {
   validateInvoiceDownload,
   downloadInvoice,
   confirmOrder,
+  customerCancelOrder,
 };

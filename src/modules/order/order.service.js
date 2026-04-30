@@ -408,6 +408,7 @@ const getOrderById = async (id) => {
     id: order.id,
     customer_name: order.shipping ? order.shipping.recipientName : null,
     ordered_by: {
+      id: order.userId,
       fullname: order.user ? order.user.fullname : null,
       email: order.user ? order.user.email : null,
     },
@@ -840,6 +841,43 @@ const confirmOrder = async (order_id) => {
   return updatedOrder;
 };
 
+const customerCancelOrder = async (order_id, user_id) => {
+  const order = await getOrderById(order_id);
+
+  if (!order) {
+    throw {
+      statusCode: 404,
+      message: "Order tidak ditemukan",
+    };
+  }
+
+  const isCustomerOrder = order.ordered_by.id === user_id;
+  if (!isCustomerOrder) {
+    throw {
+      statusCode: 403,
+      message: "Anda tidak memiliki izin untuk membatalkan order ini",
+    };
+  }
+
+  if (order.order_status !== "pesanan_diterima") {
+    throw {
+      statusCode: 400,
+      message:
+        "Hanya order dengan status pesanan_diterima atau belum diproses yang dapat dibatalkan oleh pelanggan",
+    };
+  }
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: order_id },
+    data: {
+      orderStatus: "pesanan_dibatalkan",
+      updatedAt: setDateTime(new Date()),
+    },
+  });
+
+  return updatedOrder;
+};
+
 export default {
   validateOrderStock,
   checkDateOrderStock,
@@ -852,4 +890,5 @@ export default {
   validateInvoiceDownload,
   getInvoicePDF,
   confirmOrder,
+  customerCancelOrder,
 };
