@@ -236,6 +236,18 @@ const downloadInvoice = async (req, res, next) => {
   }
 };
 
+const confirmOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const result = await orderService.confirmOrder(id);
+
+    return sendSuccess(res, result, "Order berhasil dikonfirmasi");
+  } catch (err) {
+    next(err);
+  }
+};
+
 export default {
   createOrder,
   checkDateOrderStock,
@@ -246,4 +258,5 @@ export default {
   exportOrders,
   validateInvoiceDownload,
   downloadInvoice,
+  confirmOrder,
 };

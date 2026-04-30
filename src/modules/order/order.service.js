@@ -811,6 +811,35 @@ const getInvoicePDF = async (id) => {
   return { buffer: pdfBuffer, code: order.code };
 };
 
+const confirmOrder = async (order_id) => {
+  const order = await getOrderById(order_id);
+
+  if (!order) {
+    throw {
+      statusCode: 404,
+      message: "Order tidak ditemukan",
+    };
+  }
+
+  if (order.order_status !== "pesanan_diproses") {
+    throw {
+      statusCode: 400,
+      message:
+        "Hanya order dengan status pesanan_diproses yang dapat dikonfirmasi",
+    };
+  }
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: order_id },
+    data: {
+      orderStatus: "pesanan_selesai",
+      updatedAt: setDateTime(new Date()),
+    },
+  });
+
+  return updatedOrder;
+};
+
 export default {
   validateOrderStock,
   checkDateOrderStock,
@@ -822,4 +851,5 @@ export default {
   exportOrders,
   validateInvoiceDownload,
   getInvoicePDF,
+  confirmOrder,
 };

@@ -50,4 +50,6 @@ router
   .route("/:id")
   .get(authenticate, authorizeCustomer, controller.getOrderById);
 
+router.route("/:id/confirm").post(authenticate, controller.confirmOrder);
+
 export default router;
