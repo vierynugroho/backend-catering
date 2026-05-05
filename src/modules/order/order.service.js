@@ -424,6 +424,7 @@ const getOrderById = async (id) => {
     shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
     delivery_method: order.shipping ? order.shipping.deliveryMethod : null,
     delivered_at: order.shipping ? order.shipping.deliveredAt : null,
+    shipping_id: order.shipping.id || null,
     shipping_status: order.shipping
       ? order.shipping.shippingStatus
       : "pesanan_disiapkan",
@@ -835,6 +836,15 @@ const confirmOrder = async (order_id) => {
     data: {
       orderStatus: "pesanan_selesai",
       updatedAt: setDateTime(new Date()),
+    },
+  });
+
+  prisma.shipping.update({
+    where: {
+      id: order.shipping_id,
+    },
+    data: {
+      shippingStatus: "pesanan_selesai",
     },
   });
 
