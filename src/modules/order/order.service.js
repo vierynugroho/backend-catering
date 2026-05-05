@@ -470,7 +470,7 @@ const updateOrder = async (
     order_date: orderDate,
     shipping_cost: shippingCost || 0,
     note,
-    code: generateOrderCode(),
+    code: existingOrder.code || generateOrderCode(),
     delivery_method: deliveryMethod,
     order_status: orderStatus || existingOrder.order_status,
     items: items.map((item) => ({
