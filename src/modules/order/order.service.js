@@ -831,6 +831,30 @@ const confirmOrder = async (order_id) => {
     };
   }
 
+  if (order.shipping_status === "pesanan_dibatalkan") {
+    throw {
+      statusCode: 400,
+      message:
+        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_dibatalkan",
+    };
+  }
+
+  if (order.shipping_status === "pesanan_diproses") {
+    throw {
+      statusCode: 400,
+      message:
+        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_diproses, hanya pesanan dalam proses pengiriman yang dapat dikonfirmasi",
+    };
+  }
+
+  if (order.shipping_status === "pesanan_selesai") {
+    throw {
+      statusCode: 400,
+      message:
+        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_selesai",
+    };
+  }
+
   const updatedOrder = await prisma.order.update({
     where: { id: order_id },
     data: {
