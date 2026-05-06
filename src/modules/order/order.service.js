@@ -76,7 +76,7 @@ const validateOrderStock = async (items, orderDate, isUpdate = false) => {
 
       if (out_of_stock) {
         insufficientStockItems.push({
-          reason: `Mohon maaf, kami pesanan untuk tanggal ${formatDateWIB(orderDate, false)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
+          reason: `Mohon maaf, pesanan untuk tanggal ${formatDateWIB(orderDate, false)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
         });
         continue;
       }
@@ -258,47 +258,49 @@ const getOrders = async (filters) => {
     shipping_status,
     order_status,
     delivery_method,
+    from,
+    to,
   } = filters;
 
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
 
-  // console.log("Filters getOrders:", {
-  //   parsedPage,
-  //   parsedLimit,
-  //   skip: (parsedPage - 1) * parsedLimit,
-  //   page,
-  //   limit,
-  // });
+  const eventDateFilter = {};
+  if (from) eventDateFilter.gte = setDateTime(from);
+  if (to) eventDateFilter.lte = setDateTime(to);
+
+  const whereClause = {
+    userId: isAdmin ? undefined : userId,
+    orderStatus: order_status ?? undefined,
+    eventDate: from || to ? eventDateFilter : undefined,
+    shipping: {
+      shippingStatus: shipping_status ?? undefined,
+      deliveryMethod: delivery_method ?? undefined,
+    },
+    OR: search
+      ? [
+          { user: { fullname: { contains: search, mode: "insensitive" } } },
+          { code: { contains: search, mode: "insensitive" } },
+          {
+            shipping: {
+              recipientName: search
+                ? { contains: search, mode: "insensitive" }
+                : undefined,
+              recipientPhone: search
+                ? { contains: search, mode: "insensitive" }
+                : undefined,
+            },
+          },
+        ]
+      : undefined,
+  };
+
   const orders = await prisma.order.findMany({
     orderBy: [
       { eventDate: "desc" }, // prioritas 1
       { createdAt: "desc" }, // prioritas 2 (tie-breaker)
     ],
-    where: {
-      userId: isAdmin ? undefined : userId,
-      orderStatus: order_status ?? undefined,
-      shipping: {
-        shippingStatus: shipping_status ?? undefined,
-        deliveryMethod: delivery_method ?? undefined,
-      },
-      OR: search
-        ? [
-            { user: { fullname: { contains: search, mode: "insensitive" } } },
-            { code: { contains: search, mode: "insensitive" } },
-            {
-              shipping: {
-                recipientName: search
-                  ? { contains: search, mode: "insensitive" }
-                  : undefined,
-                recipientPhone: search
-                  ? { contains: search, mode: "insensitive" }
-                  : undefined,
-              },
-            },
-          ]
-        : undefined,
-    },
+    where: whereClause,
     include: {
       user: true,
       orderItems: {
@@ -313,30 +315,7 @@ const getOrders = async (filters) => {
   });
 
   const totalOrders = await prisma.order.count({
-    where: {
-      userId: isAdmin ? undefined : userId,
-      orderStatus: order_status ?? undefined,
-      shipping: {
-        shippingStatus: shipping_status ?? undefined,
-        deliveryMethod: delivery_method ?? undefined,
-      },
-      OR: search
-        ? [
-            { user: { fullname: { contains: search, mode: "insensitive" } } },
-            { code: { contains: search, mode: "insensitive" } },
-            {
-              shipping: {
-                recipientName: search
-                  ? { contains: search, mode: "insensitive" }
-                  : undefined,
-                recipientPhone: search
-                  ? { contains: search, mode: "insensitive" }
-                  : undefined,
-              },
-            },
-          ]
-        : undefined,
-    },
+    where: whereClause,
   });
 
   const mappedOrders = orders.map((order) => ({

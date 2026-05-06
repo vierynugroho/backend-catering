@@ -51,6 +51,8 @@ const getOrders = async (req, res, next) => {
       shipping_status,
       order_status,
       delivery_method,
+      from,
+      to,
     } = req.query;
     const userId = req.user.id;
     const isAdmin = req.isAdmin ?? false;
@@ -59,6 +61,8 @@ const getOrders = async (req, res, next) => {
       shipping_status,
       order_status,
       delivery_method,
+      from,
+      to,
       isAdmin,
       userId,
       page: Number(page) || null,
