@@ -2,13 +2,11 @@ import { validateStockOrderMenu } from "../stock/stock.service.js";
 import menuService from "../menu/menu.service.js";
 import prisma from "../../config/db/prisma.js";
 import {
-  formatDateResponse,
   formatDateWIB,
   formatPhoneNumber,
   setDateTime,
   generateOrderCode,
   setDate,
-  getToday,
 } from "../../utils/helpers.js";
 import { buildPagination } from "../../common/response.js";
 import moment from "moment";
@@ -71,14 +69,14 @@ const validateOrderStock = async (items, orderDate, isUpdate = false) => {
 
       if (!is_available) {
         insufficientStockItems.push({
-          reason: `Mohon maaf, stock order untuk tanggal ${formatDateResponse(orderDate)} belum tersedia. Silakan pilih tanggal lain atau hubungi admin untuk informasi lebih lanjut.`,
+          reason: `Mohon maaf, stock order untuk tanggal ${formatDateWIB(orderDate, false)} belum tersedia. Silakan pilih tanggal lain atau hubungi admin untuk informasi lebih lanjut.`,
         });
         continue;
       }
 
       if (out_of_stock) {
         insufficientStockItems.push({
-          reason: `Mohon maaf, kami pesanan untuk tanggal ${formatDateResponse(orderDate)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
+          reason: `Mohon maaf, kami pesanan untuk tanggal ${formatDateWIB(orderDate, false)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
         });
         continue;
       }
@@ -517,46 +515,33 @@ const updateOrder = async (
     discount: calculatedDiscount,
   } = calculateOrderItems(itemsWithPrice, shippingCost, discount);
 
-  // update stock jika order date diubah dan order date lama belum lewat atau merupakan order baru, atau jika status order diubah menjadi pesanan_diterima atau pesanan_dibatalkan
+  // Invariant: order berkontribusi ke currentStock hanya jika status != pesanan_dibatalkan.
+  // Saat update, sesuaikan stock berdasarkan transisi (active <-> cancelled) dan/atau perubahan tanggal.
   const existingOrderDate = setDate(existingOrder.order_date);
   const newOrderDate = setDate(orderDate);
+  const wasActive = existingOrder.order_status !== "pesanan_dibatalkan";
+  const isActive = payload.order_status !== "pesanan_dibatalkan";
+  const dateChanged = !moment(existingOrderDate).isSame(newOrderDate, "day");
 
   return await prisma.$transaction(async (prisma) => {
-    if (
-      !moment(existingOrderDate).isSame(newOrderDate, "day") ||
-      payload.order_status === "pesanan_diterima" ||
-      payload.order_status === "pesanan_dibatalkan"
-    ) {
-      const today = getToday().start;
+    if (wasActive && (!isActive || dateChanged)) {
+      await prisma.stockOrder.updateMany({
+        where: { eventDate: existingOrderDate },
+        data: {
+          currentStock: { decrement: 1 },
+          updatedAt: setDateTime(new Date()),
+        },
+      });
+    }
 
-      if (
-        existingOrderDate >= today ||
-        existingOrder.order_status === "pesanan_dibatalkan"
-      ) {
-        await prisma.stockOrder.updateMany({
-          where: {
-            eventDate: existingOrderDate,
-          },
-          data: {
-            currentStock: {
-              decrement: 1,
-            },
-            updatedAt: setDateTime(new Date()),
-          },
-        });
-
-        await prisma.stockOrder.updateMany({
-          where: {
-            eventDate: newOrderDate,
-          },
-          data: {
-            currentStock: {
-              increment: 1,
-            },
-            updatedAt: setDateTime(new Date()),
-          },
-        });
-      }
+    if (isActive && (!wasActive || dateChanged)) {
+      await prisma.stockOrder.updateMany({
+        where: { eventDate: newOrderDate },
+        data: {
+          currentStock: { increment: 1 },
+          updatedAt: setDateTime(new Date()),
+        },
+      });
     }
 
     const updatedOrder = await prisma.order.update({
@@ -618,19 +603,16 @@ const deleteOrder = async (id) => {
     };
   }
 
-  const today = getToday().start;
-  // jika order hari ini atau belum lewat atau merupakan order baru, kembalikan stock (increment 1)
-  if (
-    setDate(existingOrder.order_date) >= today ||
-    existingOrder.order_status === "pesanan_diterima"
-  ) {
+  // Kembalikan stock hanya jika order sebelumnya masih aktif (belum dibatalkan).
+  // Order yang sudah berstatus pesanan_dibatalkan stock-nya sudah dikembalikan saat cancel.
+  if (existingOrder.order_status !== "pesanan_dibatalkan") {
     await prisma.stockOrder.updateMany({
       where: {
         eventDate: setDate(existingOrder.order_date),
       },
       data: {
         currentStock: {
-          increment: 1,
+          decrement: 1,
         },
         updatedAt: setDateTime(new Date()),
       },
@@ -759,7 +741,7 @@ const exportOrders = async (filters, type) => {
 
   const periodInfo =
     from || to
-      ? `Periode: ${from ? formatDateResponse(from) : "-"} s/d ${to ? formatDateResponse(to) : "-"}`
+      ? `Periode: ${from ? formatDateWIB(from, false) : "-"} s/d ${to ? formatDateWIB(to, false) : "-"}`
       : "Periode: Semua Transaksi";
 
   const meta = {
@@ -901,15 +883,26 @@ const customerCancelOrder = async (order_id, user_id) => {
     };
   }
 
-  const updatedOrder = await prisma.order.update({
-    where: { id: order_id },
-    data: {
-      orderStatus: "pesanan_dibatalkan",
-      updatedAt: setDateTime(new Date()),
-    },
-  });
+  return await prisma.$transaction(async (prisma) => {
+    const updatedOrder = await prisma.order.update({
+      where: { id: order_id },
+      data: {
+        orderStatus: "pesanan_dibatalkan",
+        updatedAt: setDateTime(new Date()),
+      },
+    });
 
-  return updatedOrder;
+    // Kembalikan stock karena order dibatalkan (status sebelumnya: pesanan_diterima → aktif)
+    await prisma.stockOrder.updateMany({
+      where: { eventDate: setDate(order.order_date) },
+      data: {
+        currentStock: { decrement: 1 },
+        updatedAt: setDateTime(new Date()),
+      },
+    });
+
+    return updatedOrder;
+  });
 };
 
 export default {
