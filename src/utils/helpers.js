@@ -106,7 +106,11 @@ export const setDateTime = (value) => {
 export const setDate = (value) => {
   const d = setCustomDate(value);
   if (!d) return null;
-  return moment(value).startOf("day").toDate();
+  // Kolom `date` di DB menyimpan kalender date WIB (domain bisnis Indonesia).
+  // FE kirim UTC ISO-8601 → ambil tanggal WIB-nya → emit sebagai UTC midnight
+  // supaya PostgreSQL `date` menyimpan tanggal yang sesuai intent user.
+  const wibDateStr = moment.tz(d, WIB_TZ).format("YYYY-MM-DD");
+  return new Date(`${wibDateStr}T00:00:00.000Z`);
 };
 
 export const formatDateResponse = (date, show_time = false) => {
