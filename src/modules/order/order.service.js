@@ -78,7 +78,7 @@ const validateOrderStock = async (items, orderDate, isUpdate = false) => {
 
       if (out_of_stock) {
         insufficientStockItems.push({
-          reason: `Mohon maaf, kami sedang pesanan untuk tanggal ${formatDateResponse(orderDate)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
+          reason: `Mohon maaf, kami pesanan untuk tanggal ${formatDateResponse(orderDate)} telah melampaui batas maksimal. Silakan pilih tanggal lain.`,
         });
         continue;
       }
