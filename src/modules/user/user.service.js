@@ -16,12 +16,13 @@ const getUsers = async (filters) => {
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
 
+  const phoneSearch = search ? formatPhoneNumber(search) : null;
   const where = {
     ...(search && {
       OR: [
         { fullname: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
-        { phone: { contains: formatPhoneNumber(search) } },
+        ...(phoneSearch ? [{ phone: { contains: phoneSearch } }] : []),
       ],
     }),
     customer_type: customer_type ? customer_type : undefined,
