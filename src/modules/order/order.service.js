@@ -712,9 +712,14 @@ const exportOrders = async (filters, type) => {
     };
   });
 
-  // ── Total pendapatan (kecuali pesanan dibatalkan) ──
+  // ── Total pendapatan (hanya pesanan & pengiriman yang sudah selesai) ──
   const totalRevenue = orders.reduce((sum, o) => {
-    if (o.orderStatus === "pesanan_dibatalkan") return sum;
+    if (
+      o.orderStatus !== "pesanan_selesai" ||
+      o.shipping?.shippingStatus !== "pesanan_selesai"
+    ) {
+      return sum;
+    }
     return sum + Number(o.totalPrice || 0);
   }, 0);
 

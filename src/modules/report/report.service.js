@@ -45,7 +45,13 @@ const orderReport = async (filters, userId = null) => {
 
   const totalOrders = await prisma.order.count({ where });
   const totalRevenue = await prisma.order.aggregate({
-    where,
+    where: {
+      ...where,
+      orderStatus: "pesanan_selesai",
+      shipping: {
+        is: { shippingStatus: "pesanan_selesai" },
+      },
+    },
     _sum: { totalPrice: true },
   });
 
