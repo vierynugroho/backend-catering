@@ -549,6 +549,21 @@ const updateOrder = async (
       },
     });
 
+    // Aturan ambil_sendiri: tidak ada lifecycle pengiriman riil,
+    // jadi shipping_status mengikuti order_status saat selesai.
+    const effectiveDeliveryMethod =
+      payload.delivery_method || existingOrder.delivery_method;
+    const isPickupCompleted =
+      effectiveDeliveryMethod === "ambil_sendiri" &&
+      payload.order_status === "pesanan_selesai";
+
+    const resolvedShippingStatus =
+      payload.order_status === "pesanan_dibatalkan"
+        ? "pesanan_dibatalkan"
+        : isPickupCompleted
+          ? "pesanan_selesai"
+          : shippingStatus || existingOrder.shipping_status;
+
     await prisma.shipping.updateMany({
       where: {
         orderId: id,
@@ -558,10 +573,7 @@ const updateOrder = async (
         recipientName: payload.customer_name,
         recipientPhone: payload.phone,
         deliveryMethod: payload.delivery_method,
-        shippingStatus:
-          payload.order_status === "pesanan_dibatalkan"
-            ? "pesanan_dibatalkan"
-            : shippingStatus || existingOrder.shipping_status,
+        shippingStatus: resolvedShippingStatus,
         deliveredAt: setDateTime(payload.order_date),
         shippingCost: payload.shipping_cost,
         updatedAt: setDateTime(new Date()),
@@ -814,21 +826,24 @@ const confirmOrder = async (order_id) => {
     };
   }
 
-  const updatedOrder = await prisma.order.update({
-    where: { id: order_id },
-    data: {
-      orderStatus: "pesanan_selesai",
-      updatedAt: setDateTime(new Date()),
-    },
-  });
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    const updated = await tx.order.update({
+      where: { id: order_id },
+      data: {
+        orderStatus: "pesanan_selesai",
+        updatedAt: setDateTime(new Date()),
+      },
+    });
 
-  prisma.shipping.update({
-    where: {
-      id: order.shipping_id,
-    },
-    data: {
-      shippingStatus: "pesanan_selesai",
-    },
+    await tx.shipping.update({
+      where: { id: order.shipping_id },
+      data: {
+        shippingStatus: "pesanan_selesai",
+        updatedAt: setDateTime(new Date()),
+      },
+    });
+
+    return updated;
   });
 
   return updatedOrder;
@@ -865,6 +880,14 @@ const customerCancelOrder = async (order_id, user_id) => {
       where: { id: order_id },
       data: {
         orderStatus: "pesanan_dibatalkan",
+        updatedAt: setDateTime(new Date()),
+      },
+    });
+
+    await prisma.shipping.updateMany({
+      where: { orderId: order_id },
+      data: {
+        shippingStatus: "pesanan_dibatalkan",
         updatedAt: setDateTime(new Date()),
       },
     });
