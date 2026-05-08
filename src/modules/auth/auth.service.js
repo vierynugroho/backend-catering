@@ -54,6 +54,8 @@ const me = async (userId) => {
       email: true,
       role: true,
       customerType: true,
+      address: true,
+      phone: true,
     },
   });
   if (!user) throw { statusCode: 404, message: "User tidak ditemukan" };
