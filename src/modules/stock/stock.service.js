@@ -6,10 +6,13 @@ const getOrderStocks = async (filters) => {
   const { page, limit, search } = filters;
   const parsedPage = parseInt(page) || null;
   const parsedLimit = parseInt(limit) || null;
+  const isPaginated = parsedPage && parsedLimit;
 
   const orderStockWithMenu = await prisma.stockOrder.findMany({
-    take: parsedLimit,
-    skip: (parsedPage - 1) * parsedLimit,
+    ...(isPaginated && {
+      take: parsedLimit,
+      skip: (parsedPage - 1) * parsedLimit,
+    }),
     where: {
       eventDate: search ? setDate(search) : undefined,
     },
@@ -17,6 +20,14 @@ const getOrderStocks = async (filters) => {
       eventDate: "desc",
     },
   });
+
+  if (!isPaginated) {
+    return {
+      orderStockWithMenu,
+      pagination: null,
+    };
+  }
+
   const orderStocksCount = await prisma.stockOrder.count({
     where: {
       eventDate: search ? setDate(search) : undefined,
