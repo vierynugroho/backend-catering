@@ -634,16 +634,7 @@ const exportOrders = async (filters, type) => {
     };
   }
 
-  const {
-    userId,
-    isAdmin,
-    search,
-    shipping_status,
-    order_status,
-    delivery_method,
-    from,
-    to,
-  } = filters;
+  const { userId, isAdmin, search, delivery_method, from, to } = filters;
 
   const eventDateFilter = {};
   if (from) eventDateFilter.gte = setDateTime(from);
@@ -653,11 +644,13 @@ const exportOrders = async (filters, type) => {
     orderBy: [{ eventDate: "asc" }, { createdAt: "asc" }],
     where: {
       userId: isAdmin ? undefined : userId,
-      orderStatus: order_status ?? undefined,
+      orderStatus: "pesanan_selesai",
       eventDate: from || to ? eventDateFilter : undefined,
       shipping: {
-        shippingStatus: shipping_status ?? undefined,
-        deliveryMethod: delivery_method ?? undefined,
+        is: {
+          shippingStatus: "pesanan_selesai",
+          deliveryMethod: delivery_method ?? undefined,
+        },
       },
       OR: search
         ? [
