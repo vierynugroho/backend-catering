@@ -64,8 +64,16 @@ const createUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { fullname, email, password, phone, address, customer_type, role } =
-      req.body;
+    const {
+      fullname,
+      email,
+      password,
+      phone,
+      address,
+      customer_type,
+      role,
+      is_active,
+    } = req.body;
 
     const result = await userService.updateUser(String(id), {
       fullname,
@@ -75,6 +83,7 @@ const updateUser = async (req, res, next) => {
       address,
       customer_type,
       role,
+      is_active,
     });
     return sendSuccess(res, result, "User berhasil diperbarui", 200);
   } catch (err) {

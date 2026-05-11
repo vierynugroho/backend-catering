@@ -32,6 +32,7 @@ const updateUserSchema = z.object({
     .optional(),
   phone: z.string().min(10, "Nomor telepon minimal 10 digit").optional(),
   address: z.string().min(5, "Alamat minimal 5 karakter").optional(),
+  is_active: z.boolean().optional(),
 });
 
 const searchUserSchema = z.object({

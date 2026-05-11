@@ -105,8 +105,16 @@ const createUser = async (data) => {
 };
 
 const updateUser = async (id, data) => {
-  const { fullname, email, password, phone, address, customer_type, role } =
-    data;
+  const {
+    fullname,
+    email,
+    password,
+    phone,
+    address,
+    customer_type,
+    role,
+    is_active,
+  } = data;
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -136,6 +144,7 @@ const updateUser = async (id, data) => {
       address,
       customerType: customer_type,
       role,
+      isActive: is_active !== undefined ? is_active : existingUser.isActive,
     },
   });
 
