@@ -95,7 +95,7 @@ const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const forceDelete = ["true", "1"].includes(
-      String(req.query.force_delete).toLowerCase(),
+      String(req.query["force-delete"]).toLowerCase(),
     );
 
     await userService.deleteUser(String(id), forceDelete);
