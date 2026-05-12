@@ -58,7 +58,13 @@ const deleteCategory = async (req, res, next) => {
       String(req.query["force-delete"]).toLowerCase(),
     );
     await menuService.deleteCategory(String(id), forceDelete);
-    return sendSuccess(res, null, "Kategori berhasil dihapus");
+    return sendSuccess(
+      res,
+      null,
+      forceDelete
+        ? "Kategori berhasil dihapus secara permanen"
+        : "Kategori berhasil dinonaktifkan",
+    );
   } catch (error) {
     next(error);
   }
@@ -179,7 +185,13 @@ const deleteMenu = async (req, res, next) => {
       String(req.query["force-delete"]).toLowerCase(),
     );
     await menuService.deleteMenu(String(id), forceDelete);
-    return sendSuccess(res, null, "Menu berhasil dihapus");
+    return sendSuccess(
+      res,
+      null,
+      forceDelete
+        ? "Menu berhasil dihapus secara permanen"
+        : "Menu berhasil dinonaktifkan",
+    );
   } catch (error) {
     next(error);
   }

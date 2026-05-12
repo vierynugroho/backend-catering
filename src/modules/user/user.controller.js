@@ -99,7 +99,14 @@ const deleteUser = async (req, res, next) => {
     );
 
     await userService.deleteUser(String(id), forceDelete);
-    return sendSuccess(res, null, "User berhasil dihapus", 200);
+    return sendSuccess(
+      res,
+      null,
+      forceDelete
+        ? "User berhasil dihapus secara permanen"
+        : "User berhasil dinonaktifkan",
+      200,
+    );
   } catch (err) {
     next(err);
   }
