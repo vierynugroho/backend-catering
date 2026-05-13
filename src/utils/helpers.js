@@ -103,6 +103,14 @@ export const setDateTime = (value) => {
   return d;
 };
 
+// For `to` (upper bound) filters: extend to end of WIB day so the full
+// calendar date is included (FE sends start-of-WIB-day as UTC).
+export const setDateTimeEnd = (value) => {
+  const d = setCustomDate(value);
+  if (!d) return null;
+  return moment.tz(d, WIB_TZ).endOf("day").toDate();
+};
+
 export const setDate = (value) => {
   const d = setCustomDate(value);
   if (!d) return null;

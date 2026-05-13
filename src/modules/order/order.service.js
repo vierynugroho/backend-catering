@@ -5,6 +5,7 @@ import {
   formatDateWIB,
   formatPhoneNumber,
   setDateTime,
+  setDateTimeEnd,
   generateOrderCode,
   setDate,
 } from "../../utils/helpers.js";
@@ -267,7 +268,7 @@ const getOrders = async (filters) => {
 
   const eventDateFilter = {};
   if (from) eventDateFilter.gte = setDateTime(from);
-  if (to) eventDateFilter.lte = setDateTime(to);
+  if (to) eventDateFilter.lte = setDateTimeEnd(to);
 
   const whereClause = {
     userId: isAdmin ? undefined : userId,
@@ -650,7 +651,7 @@ const exportOrders = async (filters, type) => {
 
   const eventDateFilter = {};
   if (from) eventDateFilter.gte = setDateTime(from);
-  if (to) eventDateFilter.lte = setDateTime(to);
+  if (to) eventDateFilter.lte = setDateTimeEnd(to);
 
   const orders = await prisma.order.findMany({
     orderBy: [{ eventDate: "asc" }, { createdAt: "asc" }],

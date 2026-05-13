@@ -1,4 +1,5 @@
 import prisma from "../../config/db/prisma.js";
+import { setDateTimeEnd } from "../../utils/helpers.js";
 
 const buildRangeFilters = (filters) => {
   const where = {};
@@ -17,7 +18,7 @@ const buildEventDateFilters = (filters) => {
     where.eventDate = { gte: filters.from };
   }
   if (filters?.to) {
-    where.eventDate = { ...where.eventDate, lte: filters.to };
+    where.eventDate = { ...where.eventDate, lte: setDateTimeEnd(filters.to) };
   }
   return where;
 };
