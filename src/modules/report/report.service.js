@@ -38,7 +38,7 @@ const buildDeliveryDateFilters = (filters) => {
 // TODO: order reports
 // ----------- / / -----------
 const orderReport = async (filters, userId = null) => {
-  const where = buildRangeFilters(filters);
+  const where = buildEventDateFilters(filters);
 
   if (userId) {
     where.userId = userId;
@@ -189,7 +189,7 @@ const shippingReport = async (filters, userId = null) => {
 // TODO: menu reports
 // ----------- / / -----------
 const menuReport = async (filters, userId = null) => {
-  const orderWhere = buildRangeFilters(filters);
+  const orderWhere = buildEventDateFilters(filters);
 
   const orderFilter = {
     ...orderWhere,
@@ -322,7 +322,7 @@ const menuReport = async (filters, userId = null) => {
 // TODO: customer reports
 // ----------- / / -----------
 const customerReport = async (filters) => {
-  const where = buildRangeFilters(filters);
+  const where = buildEventDateFilters(filters);
 
   const attachUserData = async (grouped) => {
     const userIds = grouped.map((g) => g.userId).filter(Boolean);
