@@ -121,58 +121,37 @@ const stockReport = async (filters) => {
 // TODO: shipping reports
 // ----------- / / -----------
 const shippingReport = async (filters, userId = null) => {
-  const where = buildDeliveryDateFilters(filters);
-
-  const baseWhere = {
-    ...(userId ? { userId } : {}),
-    shipping: {
-      isNot: null,
-      ...where,
-    },
-  };
+  const dateWhere = buildDeliveryDateFilters(filters);
+  const userWhere = userId ? { userId } : {};
 
   const retrievedDeliveries = await prisma.order.count({
     where: {
-      ...baseWhere,
-      shipping: {
-        is: {
-          shippingStatus: "pesanan_disiapkan",
-          deliveredAt: { lte: new Date() },
-        },
-      },
+      ...userWhere,
+      shipping: { is: { shippingStatus: "pesanan_disiapkan", ...dateWhere } },
     },
   });
 
   const completedDeliveries = await prisma.order.count({
     where: {
-      ...baseWhere,
-      shipping: {
-        is: {
-          shippingStatus: "pesanan_selesai",
-          deliveredAt: { lte: new Date() },
-        },
-      },
+      ...userWhere,
+      shipping: { is: { shippingStatus: "pesanan_selesai", ...dateWhere } },
     },
   });
 
   const canceledDeliveries = await prisma.order.count({
     where: {
-      ...baseWhere,
-      shipping: {
-        is: {
-          shippingStatus: "pesanan_dibatalkan",
-          deliveredAt: { gt: new Date() },
-        },
-      },
+      ...userWhere,
+      shipping: { is: { shippingStatus: "pesanan_dibatalkan", ...dateWhere } },
     },
   });
 
   const processedDeliveries = await prisma.order.count({
     where: {
-      ...baseWhere,
+      ...userWhere,
       shipping: {
         is: {
           shippingStatus: "pesanan_dalam_proses_pengiriman",
+          ...dateWhere,
         },
       },
     },
