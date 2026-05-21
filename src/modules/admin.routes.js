@@ -20,6 +20,9 @@ import {
 } from "../middlewares/auth.middleware.js";
 import { orderQuerySchema, updateOrderSchema } from "./order/order.schema.js";
 import { rangeDateSchema } from "./report/report.schema.js";
+import {
+  searchMenuSchema,
+} from "./menu/menu.schema.js";
 
 const router = new Router();
 
@@ -28,7 +31,7 @@ const router = new Router();
 // ----------- / / -----------
 router
   .route("/menus")
-  .get(validate.query(rangeDateSchema), menuController.getMenus);
+  .get(validate.query([rangeDateSchema, searchMenuSchema]), menuController.getMenus);
 router.route("/menus/:id").get(menuController.getMenuById);
 
 // ----------- / / -----------
