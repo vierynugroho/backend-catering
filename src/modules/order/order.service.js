@@ -53,13 +53,20 @@ const validateOrderStock = async (items, orderDate, isUpdate = false) => {
   const insufficientStockItems = [];
 
   for (const item of items) {
-    const { menu_id: menuId } = item;
+    const { menu_id: menuId, quantity } = item;
     const menu = await menuService.getMenuById(menuId);
 
     if (!menu) {
       insufficientStockItems.push({
         menu: { name: "Menu tidak ditemukan" },
         reason: "Menu tidak ditemukan",
+      });
+      continue;
+    }
+
+    if (menu.min_order && quantity < menu.min_order) {
+      insufficientStockItems.push({
+        reason: `Minimum order untuk menu "${menu.name}" adalah ${menu.min_order} porsi, Anda memesan ${quantity} porsi.`,
       });
       continue;
     }
