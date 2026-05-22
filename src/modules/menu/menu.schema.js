@@ -15,6 +15,11 @@ const createMenuSchema = z.object({
       .min(0, "Harga menu tidak boleh negatif")
       .max(MAX_MENU_PRICE, `Harga menu maksimal ${MAX_MENU_PRICE}`),
   ),
+  min_order: z.preprocess(
+    (val) =>
+      val === "" || val === null || val === undefined ? 1 : Number(val),
+    z.number().int().min(1, "Minimum order minimal 1"),
+  ).optional(),
   description: z.string().optional(),
 });
 
@@ -33,6 +38,11 @@ const updateMenuSchema = z.object({
         .max(MAX_MENU_PRICE, `Harga menu maksimal ${MAX_MENU_PRICE}`),
     )
     .optional(),
+  min_order: z.preprocess(
+    (val) =>
+      val === "" || val === null || val === undefined ? 1 : Number(val),
+    z.number().int().min(1, "Minimum order minimal 1"),
+  ).optional(),
   description: z.string().optional(),
 });
 

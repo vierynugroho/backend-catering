@@ -139,6 +139,7 @@ const createMenu = async ({
   category_id,
   images,
   price,
+  min_order,
   description,
 }) => {
   const existing = await prisma.menu.findUnique({
@@ -164,6 +165,7 @@ const createMenu = async ({
       images: images.length > 0 ? JSON.stringify(images) : null,
       categoryId: category_id || null,
       price,
+      minOrder: min_order ?? 1,
       description,
     },
     include: {
@@ -174,7 +176,7 @@ const createMenu = async ({
 
 const updateMenu = async (
   id,
-  { name, slug, is_active, category_id, images, price, description },
+  { name, slug, is_active, category_id, images, price, min_order, description },
 ) => {
   const existing = await prisma.menu.findUnique({
     where: {
@@ -210,6 +212,7 @@ const updateMenu = async (
       images: images.length > 0 ? JSON.stringify(images) : undefined,
       categoryId: category_id || null,
       price,
+      minOrder: min_order ?? undefined,
       description,
     },
   });
@@ -255,6 +258,7 @@ const getMenus = async (filters) => {
     is_active: menu.isActive,
     images: menu.images ? JSON.parse(menu.images) : [],
     price: Number(menu.price) || 0,
+    min_order: menu.minOrder,
     description: menu.description,
     category: menu.category
       ? {
@@ -287,6 +291,17 @@ const deleteMenu = async (id, forceDelete = false) => {
     });
   }
 
+  const menuInOrders = await prisma.orderItem.findMany({
+    where: { menuId: id },
+  });
+
+  if (menuInOrders.length > 0) {
+    throw {
+      statusCode: 400,
+      message: "Menu tidak bisa dihapus karena sudah pernah dipesan",
+    };
+  }
+
   if (menu.images) {
     const images = JSON.parse(menu.images);
     const deletePromises = images.map((img) => deleteFromImageKit(img.fileId));
@@ -316,6 +331,7 @@ const getMenuById = async (id, isAdmin = false) => {
     is_active: menu.isActive,
     images: menu.images ? JSON.parse(menu.images) : [],
     price: Number(menu.price) || 0,
+    min_order: menu.minOrder,
     description: menu.description,
     category: menu.category
       ? {

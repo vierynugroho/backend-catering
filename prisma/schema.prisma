@@ -68,6 +68,7 @@ model Menu {
   slug        String   @unique
   description String?
   price       Decimal  @db.Decimal(10, 2)
+  minOrder    Int      @default(1) @map("min_order")
   images      Json?
   isActive    Boolean  @default(true) @map("is_active")
   categoryId  String?  @map("category_id")

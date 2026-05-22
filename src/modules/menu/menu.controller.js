@@ -102,7 +102,7 @@ const getMenus = async (req, res, next) => {
 
 const createMenu = async (req, res, next) => {
   try {
-    const { name, slug, is_active, category_id, price, description } = req.body;
+    const { name, slug, is_active, category_id, price, min_order, description } = req.body;
 
     const images = req.uploadedImages || [];
 
@@ -113,6 +113,7 @@ const createMenu = async (req, res, next) => {
       category_id,
       images,
       price,
+      min_order,
       description,
     });
 
@@ -123,6 +124,7 @@ const createMenu = async (req, res, next) => {
       is_active: menu.isActive,
       images: menu.images ? JSON.parse(menu.images) : [],
       price: Number(menu.price) || 0,
+      min_order: menu.minOrder,
       description: menu.description,
       category: menu.category
         ? {
@@ -142,7 +144,7 @@ const createMenu = async (req, res, next) => {
 const updateMenu = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, slug, is_active, category_id, price, description } = req.body;
+    const { name, slug, is_active, category_id, price, min_order, description } = req.body;
     const images = req.uploadedImages || [];
 
     const menu = await menuService.updateMenu(String(id), {
@@ -152,6 +154,7 @@ const updateMenu = async (req, res, next) => {
       category_id,
       images,
       price,
+      min_order,
       description,
     });
 
@@ -162,6 +165,7 @@ const updateMenu = async (req, res, next) => {
       is_active: menu.isActive,
       images: menu.images ? JSON.parse(menu.images) : [],
       price: Number(menu.price) || 0,
+      min_order: menu.minOrder,
       description: menu.description,
       category: menu.category
         ? {
