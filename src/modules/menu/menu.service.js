@@ -223,7 +223,9 @@ const getMenus = async (filters) => {
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
   const menuWithCategory = await prisma.menu.findMany({
-    orderBy: [{ price: "asc" }, { name: "asc" }],
+    orderBy: isAdmin
+      ? [{ price: "asc" }, { name: "asc" }]
+      : { createdAt: "desc" },
     where: {
       isActive: isAdmin ? undefined : true,
       categoryId: filters.category_id || undefined,
