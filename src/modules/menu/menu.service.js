@@ -222,19 +222,22 @@ const getMenus = async (filters) => {
   const { isAdmin, page, limit, from, to, name } = filters;
   const parsedPage = parseInt(page) || 1;
   const parsedLimit = parseInt(limit) || 10;
+
+  const where = {
+    isActive: isAdmin ? undefined : true,
+    categoryId: filters.category_id || undefined,
+    createdAt: {
+      gte: from ? new Date(from) : undefined,
+      lte: to ? new Date(to) : undefined,
+    },
+    name: name ? { contains: name, mode: "insensitive" } : undefined,
+  };
+
   const menuWithCategory = await prisma.menu.findMany({
     orderBy: !isAdmin
       ? [{ price: "asc" }, { name: "asc" }]
       : { createdAt: "desc" },
-    where: {
-      isActive: isAdmin ? undefined : true,
-      categoryId: filters.category_id || undefined,
-      createdAt: {
-        gte: from ? new Date(from) : undefined,
-        lte: to ? new Date(to) : undefined,
-      },
-      name: name ? { contains: name, mode: "insensitive" } : undefined,
-    },
+    where,
     include: {
       category: true,
     },
@@ -242,16 +245,7 @@ const getMenus = async (filters) => {
     skip: (parsedPage - 1) * parsedLimit,
   });
 
-  const menuCount = await prisma.menu.count({
-    where: {
-      isActive: isAdmin ? undefined : true,
-      createdAt: {
-        gte: from ? new Date(from) : undefined,
-        lte: to ? new Date(to) : undefined,
-      },
-      name: name ? { contains: name, mode: "insensitive" } : undefined,
-    },
-  });
+  const menuCount = await prisma.menu.count({ where });
 
   const mappedData = menuWithCategory.map((menu) => ({
     id: menu.id,
