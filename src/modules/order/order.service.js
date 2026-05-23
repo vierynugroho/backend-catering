@@ -557,20 +557,20 @@ const updateOrder = async (
       },
     });
 
-    // Aturan ambil_sendiri: tidak ada lifecycle pengiriman riil,
-    // jadi shipping_status mengikuti order_status saat selesai.
+    // Aturan ambil_sendiri: tidak ada lifecycle pengiriman riil.
+    // Shipping status selalu pesanan_disiapkan sampai order selesai atau dibatalkan.
     const effectiveDeliveryMethod =
       payload.delivery_method || existingOrder.delivery_method;
-    const isPickupCompleted =
-      effectiveDeliveryMethod === "ambil_sendiri" &&
-      payload.order_status === "pesanan_selesai";
+    const isPickup = effectiveDeliveryMethod === "ambil_sendiri";
 
     const resolvedShippingStatus =
       payload.order_status === "pesanan_dibatalkan"
         ? "pesanan_dibatalkan"
-        : isPickupCompleted
+        : isPickup && payload.order_status === "pesanan_selesai"
           ? "pesanan_selesai"
-          : shippingStatus || existingOrder.shipping_status;
+          : isPickup
+            ? "pesanan_disiapkan"
+            : shippingStatus || existingOrder.shipping_status;
 
     await prisma.shipping.updateMany({
       where: {

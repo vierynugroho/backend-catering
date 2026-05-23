@@ -108,6 +108,14 @@ const updateOrderStock = async (id, data) => {
     };
   }
 
+  const effectiveMaxStock = max_stock ?? existingOrderStock.maxStock;
+  if (effectiveMaxStock < existingOrderStock.currentStock) {
+    throw {
+      statusCode: 400,
+      message: `Tidak dapat mengurangi max order menjadi ${effectiveMaxStock} karena sudah ada ${existingOrderStock.currentStock} pesanan aktif untuk tanggal ini`,
+    };
+  }
+
   const updatedOrderStock = await prisma.stockOrder.update({
     where: { id },
     data: {
@@ -127,6 +135,20 @@ const deleteOrderStock = async (id) => {
 
   if (!existingOrderStock) {
     throw { statusCode: 400, message: "Order stock tidak ditemukan" };
+  }
+
+  const hasOrders = await prisma.order.findFirst({
+    where: {
+      eventDate: existingOrderStock.eventDate,
+    },
+  });
+
+  if (hasOrders) {
+    throw {
+      statusCode: 400,
+      message:
+        "Tidak dapat menghapus order stock yang memiliki pesanan terkait",
+    };
   }
 
   await prisma.stockOrder.delete({
