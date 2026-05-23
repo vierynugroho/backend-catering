@@ -137,17 +137,10 @@ const deleteOrderStock = async (id) => {
     throw { statusCode: 400, message: "Order stock tidak ditemukan" };
   }
 
-  const hasOrders = await prisma.order.findFirst({
-    where: {
-      eventDate: existingOrderStock.eventDate,
-    },
-  });
-
-  if (hasOrders) {
+  if (existingOrderStock.currentStock > 0) {
     throw {
       statusCode: 400,
-      message:
-        "Tidak dapat menghapus order stock yang memiliki pesanan terkait",
+      message: `Tidak dapat menghapus order stock yang memiliki ${existingOrderStock.currentStock} pesanan aktif`,
     };
   }
 
