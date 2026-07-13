@@ -170,21 +170,18 @@ const deleteUser = async (id, forceDelete = false) => {
     return;
   }
 
-  await prisma.$transaction(async (tx) => {
-    const orders = await tx.order.findMany({
-      where: { userId: id },
-      select: { id: true },
-    });
-    const orderIds = orders.map((o) => o.id);
-
-    if (orderIds.length > 0) {
-      await tx.shipping.deleteMany({ where: { orderId: { in: orderIds } } });
-      await tx.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
-      await tx.order.deleteMany({ where: { id: { in: orderIds } } });
-    }
-
-    await tx.user.delete({ where: { id } });
+  const userInOrders = await prisma.order.findMany({
+    where: { userId: id },
   });
+
+  if (userInOrders.length > 0) {
+    throw {
+      statusCode: 400,
+      message: "User tidak bisa dihapus karena sudah pernah melakukan pemesanan",
+    };
+  }
+
+  await prisma.user.delete({ where: { id } });
 };
 
 export default { getUsers, getUserById, createUser, updateUser, deleteUser };

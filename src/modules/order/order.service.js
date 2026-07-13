@@ -481,6 +481,36 @@ const updateOrder = async (
     };
   }
 
+  const effectiveDeliveryMethod =
+    payload.delivery_method || existingOrder.delivery_method;
+
+  // Order (baik ambil_sendiri maupun dikirim) hanya boleh menjadi pesanan_selesai
+  // melalui konfirmasi customer (lihat confirmOrder), bukan lewat update manual oleh admin
+  if (
+    payload.order_status === "pesanan_selesai" &&
+    existingOrder.order_status !== "pesanan_selesai"
+  ) {
+    throw {
+      statusCode: 400,
+      message:
+        "Order tidak dapat diubah menjadi pesanan_selesai karena belum ada konfirmasi dari customer bahwa pesanan telah selesai",
+    };
+  }
+
+  // Untuk metode dikirim, status pengiriman tidak dapat diubah menjadi pesanan_selesai
+  // tanpa konfirmasi dari customer bahwa pesanan telah selesai
+  if (
+    effectiveDeliveryMethod === "dikirim" &&
+    shippingStatus === "pesanan_selesai" &&
+    existingOrder.shipping_status !== "pesanan_selesai"
+  ) {
+    throw {
+      statusCode: 400,
+      message:
+        "Status pengiriman tidak dapat diubah menjadi pesanan_selesai karena belum ada konfirmasi dari customer bahwa pesanan telah selesai",
+    };
+  }
+
   let itemsWithPrice = [];
   for (const item of items) {
     const menu = await menuService.getMenuById(item.menu_id);
@@ -559,8 +589,6 @@ const updateOrder = async (
 
     // Aturan ambil_sendiri: tidak ada lifecycle pengiriman riil.
     // Shipping status selalu pesanan_disiapkan sampai order selesai atau dibatalkan.
-    const effectiveDeliveryMethod =
-      payload.delivery_method || existingOrder.delivery_method;
     const isPickup = effectiveDeliveryMethod === "ambil_sendiri";
 
     const resolvedShippingStatus =
