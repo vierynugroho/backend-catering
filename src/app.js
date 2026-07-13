@@ -16,6 +16,7 @@ import adminRoutes from "./modules/admin.routes.js";
 import orderRoutes from "./modules/order/order.route.js";
 import { authenticate, authorizeAdmin } from "./middlewares/auth.middleware.js";
 import reportRoutes from "./modules/report/report.route.js";
+import stockRoutes from "./modules/stock/stock.route.js";
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/menus", menuRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/stocks", authenticate, stockRoutes);
 
 // 404
 app.use((req, res) => {
