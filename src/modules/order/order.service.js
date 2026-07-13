@@ -339,6 +339,7 @@ const getOrders = async (filters) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
+    is_confirmed: order.orderStatus === "pesanan_selesai",
     shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
     total_price: parseFloat(order.totalPrice),
     discount: parseFloat(order.discount),
@@ -403,6 +404,7 @@ const getOrderById = async (id) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
+    is_confirmed: order.orderStatus === "pesanan_selesai",
     discount: parseFloat(order.discount),
     normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
     final_price: parseFloat(order.totalPrice),
@@ -862,8 +864,8 @@ const confirmOrder = async (order_id) => {
     };
   }
 
-  const updatedOrder = await prisma.$transaction(async (tx) => {
-    const updated = await tx.order.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
       where: { id: order_id },
       data: {
         orderStatus: "pesanan_selesai",
@@ -878,11 +880,9 @@ const confirmOrder = async (order_id) => {
         updatedAt: setDateTime(new Date()),
       },
     });
-
-    return updated;
   });
 
-  return updatedOrder;
+  return await getOrderById(order_id);
 };
 
 const customerCancelOrder = async (order_id, user_id) => {
