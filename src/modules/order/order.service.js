@@ -339,7 +339,7 @@ const getOrders = async (filters) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
-    is_confirmed: order.orderStatus === "pesanan_selesai",
+    is_confirmed: order.isConfirmed,
     shipping_cost: order.shipping ? parseFloat(order.shipping.shippingCost) : 0,
     total_price: parseFloat(order.totalPrice),
     discount: parseFloat(order.discount),
@@ -404,7 +404,7 @@ const getOrderById = async (id) => {
     code: order.code,
     order_date: order.eventDate,
     order_status: order.orderStatus,
-    is_confirmed: order.orderStatus === "pesanan_selesai",
+    is_confirmed: order.isConfirmed,
     discount: parseFloat(order.discount),
     normal_price: parseFloat(order.totalPrice) + parseFloat(order.discount),
     final_price: parseFloat(order.totalPrice),
@@ -488,10 +488,7 @@ const updateOrder = async (
 
   // Order (baik ambil_sendiri maupun dikirim) hanya boleh menjadi pesanan_selesai
   // melalui konfirmasi customer (lihat confirmOrder), bukan lewat update manual oleh admin
-  if (
-    payload.order_status === "pesanan_selesai" &&
-    existingOrder.order_status !== "pesanan_selesai"
-  ) {
+  if (payload.order_status === "pesanan_selesai" && !existingOrder.is_confirmed) {
     throw {
       statusCode: 400,
       message:
@@ -504,7 +501,7 @@ const updateOrder = async (
   if (
     effectiveDeliveryMethod === "dikirim" &&
     shippingStatus === "pesanan_selesai" &&
-    existingOrder.shipping_status !== "pesanan_selesai"
+    !existingOrder.is_confirmed
   ) {
     throw {
       statusCode: 400,
@@ -869,6 +866,7 @@ const confirmOrder = async (order_id) => {
       where: { id: order_id },
       data: {
         orderStatus: "pesanan_selesai",
+        isConfirmed: true,
         updatedAt: setDateTime(new Date()),
       },
     });
