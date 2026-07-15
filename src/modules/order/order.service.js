@@ -466,9 +466,10 @@ const updateOrder = async (
     })),
   };
 
-  // jika status order pesanan_diproses, jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
+  // jika status order pesanan_diproses atau pesanan_siap_diambil, jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
   if (
-    existingOrder.order_status === "pesanan_diproses" &&
+    (existingOrder.order_status === "pesanan_diproses" ||
+      existingOrder.order_status === "pesanan_siap_diambil") &&
     (payload.order_status === "pesanan_diterima" ||
       payload.order_status === "pesanan_dibatalkan" ||
       !moment(setDate(existingOrder.order_date)).isSame(
@@ -479,12 +480,24 @@ const updateOrder = async (
     throw {
       statusCode: 400,
       message:
-        "Tidak dapat mengubah status menjadi pesanan_diterima atau pesanan_dibatalkan atau mengubah tanggal order karena status order saat ini adalah pesanan_diproses",
+        "Tidak dapat mengubah status menjadi pesanan_diterima atau pesanan_dibatalkan atau mengubah tanggal order karena status order saat ini adalah pesanan_diproses atau pesanan_siap_diambil",
     };
   }
 
   const effectiveDeliveryMethod =
     payload.delivery_method || existingOrder.delivery_method;
+
+  // Status pesanan_siap_diambil hanya berlaku untuk order dengan metode ambil_sendiri
+  if (
+    payload.order_status === "pesanan_siap_diambil" &&
+    effectiveDeliveryMethod !== "ambil_sendiri"
+  ) {
+    throw {
+      statusCode: 400,
+      message:
+        "Status pesanan_siap_diambil hanya berlaku untuk order dengan metode ambil_sendiri",
+    };
+  }
 
   // Order (baik ambil_sendiri maupun dikirim) hanya boleh menjadi pesanan_selesai
   // melalui konfirmasi customer (lihat confirmOrder), bukan lewat update manual oleh admin
@@ -829,36 +842,48 @@ const confirmOrder = async (order_id) => {
     };
   }
 
-  if (order.order_status !== "pesanan_diproses") {
-    throw {
-      statusCode: 400,
-      message:
-        "Hanya order dengan status pesanan_diproses yang dapat dikonfirmasi",
-    };
-  }
+  const isPickup = order.delivery_method === "ambil_sendiri";
 
-  if (order.shipping_status === "pesanan_dibatalkan") {
-    throw {
-      statusCode: 400,
-      message:
-        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_dibatalkan",
-    };
-  }
+  if (isPickup) {
+    if (order.order_status !== "pesanan_siap_diambil") {
+      throw {
+        statusCode: 400,
+        message:
+          "Hanya order dengan status pesanan_siap_diambil yang dapat dikonfirmasi",
+      };
+    }
+  } else {
+    if (order.order_status !== "pesanan_diproses") {
+      throw {
+        statusCode: 400,
+        message:
+          "Hanya order dengan status pesanan_diproses yang dapat dikonfirmasi",
+      };
+    }
 
-  if (order.shipping_status === "pesanan_diproses") {
-    throw {
-      statusCode: 400,
-      message:
-        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_diproses, hanya pesanan dalam proses pengiriman yang dapat dikonfirmasi",
-    };
-  }
+    if (order.shipping_status === "pesanan_dibatalkan") {
+      throw {
+        statusCode: 400,
+        message:
+          "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_dibatalkan",
+      };
+    }
 
-  if (order.shipping_status === "pesanan_selesai") {
-    throw {
-      statusCode: 400,
-      message:
-        "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_selesai",
-    };
+    if (order.shipping_status === "pesanan_diproses") {
+      throw {
+        statusCode: 400,
+        message:
+          "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_diproses, hanya pesanan dalam proses pengiriman yang dapat dikonfirmasi",
+      };
+    }
+
+    if (order.shipping_status === "pesanan_selesai") {
+      throw {
+        statusCode: 400,
+        message:
+          "Tidak dapat mengkonfirmasi order karena status pengiriman adalah pesanan_selesai",
+      };
+    }
   }
 
   await prisma.$transaction(async (tx) => {

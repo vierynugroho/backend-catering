@@ -40,13 +40,14 @@ const updateOrderSchema = z.object({
     [
       "pesanan_diterima",
       "pesanan_diproses",
+      "pesanan_siap_diambil",
       "pesanan_selesai",
       "pesanan_dibatalkan",
     ],
     {
       errorMap: () => ({
         message:
-          "Status pesanan tidak valid, harus salah satu dari: 'pesanan_diterima', 'pesanan_diproses', 'pesanan_selesai', 'pesanan_dibatalkan'",
+          "Status pesanan tidak valid, harus salah satu dari: 'pesanan_diterima', 'pesanan_diproses', 'pesanan_siap_diambil', 'pesanan_selesai', 'pesanan_dibatalkan'",
       }),
     },
   ),
@@ -83,13 +84,14 @@ const updateOrderStatusSchema = z.object({
     [
       "pesanan_diterima",
       "pesanan_diproses",
+      "pesanan_siap_diambil",
       "pesanan_selesai",
       "pesanan_dibatalkan",
     ],
     {
       errorMap: () => ({
         message:
-          "Status pesanan tidak valid, harus salah satu dari: 'pesanan_diterima', 'pesanan_diproses', 'pesanan_selesai', 'pesanan_dibatalkan'",
+          "Status pesanan tidak valid, harus salah satu dari: 'pesanan_diterima', 'pesanan_diproses', 'pesanan_siap_diambil', 'pesanan_selesai', 'pesanan_dibatalkan'",
       }),
     },
   ),
@@ -109,12 +111,13 @@ const orderQuerySchema = z.object({
       [
         "pesanan_diterima",
         "pesanan_diproses",
+        "pesanan_siap_diambil",
         "pesanan_selesai",
         "pesanan_dibatalkan",
       ],
       {
         message:
-          "Status harus salah satu dari: pesanan_diterima, pesanan_diproses, pesanan_selesai, pesanan_dibatalkan",
+          "Status harus salah satu dari: pesanan_diterima, pesanan_diproses, pesanan_siap_diambil, pesanan_selesai, pesanan_dibatalkan",
       },
     )
     .optional(),
