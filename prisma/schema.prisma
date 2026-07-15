@@ -128,6 +128,7 @@ enum OrderStatus {
   pesanan_diterima
   pesanan_diproses
   pesanan_siap_diambil
+  pesanan_siap_diantar
   pesanan_selesai
   pesanan_dibatalkan
 }

@@ -466,10 +466,15 @@ const updateOrder = async (
     })),
   };
 
-  // jika status order pesanan_diproses atau pesanan_siap_diambil, jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
+  // jika status order pesanan_diproses, pesanan_siap_diambil, atau pesanan_siap_diantar,
+  // jangan izinkan update tanggal atau ubah status menjadi pesanan_diterima atau pesanan_dibatalkan
+  const lockedOrderStatuses = [
+    "pesanan_diproses",
+    "pesanan_siap_diambil",
+    "pesanan_siap_diantar",
+  ];
   if (
-    (existingOrder.order_status === "pesanan_diproses" ||
-      existingOrder.order_status === "pesanan_siap_diambil") &&
+    lockedOrderStatuses.includes(existingOrder.order_status) &&
     (payload.order_status === "pesanan_diterima" ||
       payload.order_status === "pesanan_dibatalkan" ||
       !moment(setDate(existingOrder.order_date)).isSame(
@@ -480,7 +485,7 @@ const updateOrder = async (
     throw {
       statusCode: 400,
       message:
-        "Tidak dapat mengubah status menjadi pesanan_diterima atau pesanan_dibatalkan atau mengubah tanggal order karena status order saat ini adalah pesanan_diproses atau pesanan_siap_diambil",
+        "Tidak dapat mengubah status menjadi pesanan_diterima atau pesanan_dibatalkan atau mengubah tanggal order karena status order saat ini adalah pesanan_diproses, pesanan_siap_diambil, atau pesanan_siap_diantar",
     };
   }
 
@@ -496,6 +501,18 @@ const updateOrder = async (
       statusCode: 400,
       message:
         "Status pesanan_siap_diambil hanya berlaku untuk order dengan metode ambil_sendiri",
+    };
+  }
+
+  // Status pesanan_siap_diantar hanya berlaku untuk order dengan metode dikirim
+  if (
+    payload.order_status === "pesanan_siap_diantar" &&
+    effectiveDeliveryMethod !== "dikirim"
+  ) {
+    throw {
+      statusCode: 400,
+      message:
+        "Status pesanan_siap_diantar hanya berlaku untuk order dengan metode dikirim",
     };
   }
 
@@ -552,6 +569,13 @@ const updateOrder = async (
   const isActive = payload.order_status !== "pesanan_dibatalkan";
   const dateChanged = !moment(existingOrderDate).isSame(newOrderDate, "day");
 
+  // Jika order sudah pernah dikonfirmasi customer namun statusnya diubah kembali
+  // ke selain pesanan_selesai/pesanan_dibatalkan, konfirmasi dianggap tidak berlaku lagi
+  const shouldResetConfirmation =
+    existingOrder.is_confirmed &&
+    payload.order_status !== "pesanan_selesai" &&
+    payload.order_status !== "pesanan_dibatalkan";
+
   return await prisma.$transaction(async (prisma) => {
     if (wasActive && (!isActive || dateChanged)) {
       await prisma.stockOrder.updateMany({
@@ -582,6 +606,7 @@ const updateOrder = async (
         totalPrice,
         discount: calculatedDiscount,
         orderStatus: payload.order_status,
+        isConfirmed: shouldResetConfirmation ? false : undefined,
         orderItems: {
           update: payload.items.map((item) => ({
             where: { orderId_menuId: { orderId: id, menuId: item.menu_id } },
@@ -853,11 +878,11 @@ const confirmOrder = async (order_id) => {
       };
     }
   } else {
-    if (order.order_status !== "pesanan_diproses") {
+    if (order.order_status !== "pesanan_siap_diantar") {
       throw {
         statusCode: 400,
         message:
-          "Hanya order dengan status pesanan_diproses yang dapat dikonfirmasi",
+          "Hanya order dengan status pesanan_siap_diantar yang dapat dikonfirmasi",
       };
     }
 

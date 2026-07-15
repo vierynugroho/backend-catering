@@ -68,6 +68,9 @@ const orderReport = async (filters, userId = null) => {
   const readyForPickupOrders = await prisma.order.count({
     where: { ...where, orderStatus: "pesanan_siap_diambil" },
   });
+  const readyToDeliverOrders = await prisma.order.count({
+    where: { ...where, orderStatus: "pesanan_siap_diantar" },
+  });
   const mustBeProcessedOrders = await prisma.order.count({
     where: { ...where, orderStatus: "pesanan_diterima" },
   });
@@ -79,6 +82,7 @@ const orderReport = async (filters, userId = null) => {
     cancelledOrders,
     inProcessOrders,
     readyForPickupOrders,
+    readyToDeliverOrders,
     mustBeProcessedOrders,
   };
 };
