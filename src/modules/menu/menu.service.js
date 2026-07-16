@@ -109,6 +109,14 @@ const deleteCategory = async (id, forceDelete = false) => {
     where: { categoryId: id },
   });
 
+  if (menus.length > 0 && forceDelete) {
+    throw {
+      statusCode: 400,
+      message:
+        "Kategori tidak bisa dihapus karena masih memiliki menu yang terkait",
+    };
+  }
+
   const imageDeletions = menus.flatMap((menu) => {
     if (!menu.images) return [];
     const parsed = JSON.parse(menu.images);
